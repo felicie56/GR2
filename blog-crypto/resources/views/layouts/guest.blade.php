@@ -33,6 +33,21 @@
                        class="text-sm {{ request()->routeIs('crypto.*') ? 'text-white' : 'text-gray-300' }} hover:text-white">
                         Giá Crypto
                     </a>
+
+                    {{-- Chỉ ADMIN mới thấy --}}
+                    @auth
+                        @if (auth()->user()->hasRole('ADMIN'))
+                            <a href="{{ route('admin.blog.pending') }}"
+                               class="text-sm {{ request()->routeIs('admin.blog.*') ? 'text-white' : 'text-gray-300' }} hover:text-white">
+                                Phê duyệt blog
+                            </a>
+
+                            <a href="{{ route('admin.news.create') }}"
+                               class="text-sm {{ request()->routeIs('admin.news.create') ? 'text-white' : 'text-gray-300' }} hover:text-white">
+                                Tạo tin tức
+                            </a>
+                        @endif
+                    @endauth
                 </div>
 
                 <div class="flex items-center space-x-4">
