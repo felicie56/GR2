@@ -2,39 +2,64 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BlogPost extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'user_id',
         'title',
         'slug',
         'content',
         'thumbnail',
+        'category_id',
+        'user_id',
+        'author_id',
         'status',
+        'review_note',
+        'rejection_reason',
+        'reviewed_at',
+        'reviewed_by',
+        'review_seen_at',
+        'published_at',
     ];
 
-    // Tác giả
+    protected $casts = [
+        'reviewed_at' => 'datetime',
+        'review_seen_at' => 'datetime',
+        'published_at' => 'datetime',
+    ];
+
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Comment cho bài blog
-    public function comments(): HasMany
+    public function user(): BelongsTo
     {
-        return $this->hasMany(Comment::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Reaction cho bài blog
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(BlogPostImage::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class, 'blog_post_id')->latest();
+    }
+
     public function reactions(): HasMany
     {
-        return $this->hasMany(Reaction::class);
+        return $this->hasMany(Reaction::class, 'blog_post_id');
     }
 }

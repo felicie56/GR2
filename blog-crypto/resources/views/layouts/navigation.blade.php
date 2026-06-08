@@ -15,6 +15,38 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    <x-nav-link :href="route('blog.index')" :active="request()->routeIs('blog.*')">
+    Blog
+</x-nav-link>
+
+<x-nav-link :href="route('news.index')" :active="request()->routeIs('news.*')">
+    Tin tức
+</x-nav-link>
+
+<x-nav-link :href="route('crypto.index')" :active="request()->routeIs('crypto.*')">
+    Giá Crypto
+</x-nav-link>
+
+@auth
+    @if (! Auth::user()->hasRole('AUTHOR') && ! Auth::user()->hasRole('ADMIN'))
+        <x-nav-link :href="route('author.apply.create')" :active="request()->routeIs('author.apply.*')">
+            Đăng ký làm tác giả
+        </x-nav-link>
+    @endif
+
+    @if (Auth::user()->hasRole('AUTHOR'))
+        <x-nav-link :href="route('blog.create')" :active="request()->routeIs('blog.create')">
+            Viết bài
+        </x-nav-link>
+    @endif
+
+    @if (Auth::user()->hasRole('ADMIN'))
+        <x-nav-link :href="route('admin.author-applications.index')" :active="request()->routeIs('admin.author-applications.*')">
+            Duyệt tác giả
+        </x-nav-link>
+    @endif
+@endauth
                 </div>
             </div>
 

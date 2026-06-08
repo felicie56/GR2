@@ -5,40 +5,59 @@ namespace App\Http\Controllers;
 use App\Models\BlogPost;
 use App\Models\Reaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class ReactionController extends Controller
 {
-    // Toggle like cho một bài blog
-    public function toggleForBlog(int $postId)
+    public function toggleForBlog(Request $request, int $postId)
     {
-        $user = Auth::user();
+        $post = BlogPost::findOrFail($postId);
+        $userId = auth()->id();
 
-        $post = BlogPost::where('id', $postId)
-            ->where('status', 'approved')
-            ->firstOrFail();
+        $blogForeignKey = $this->blogReactionForeignKey();
 
-        // Tìm xem user đã like bài này chưa
-        $existing = Reaction::where('user_id', $user->id)
-            ->where('blog_post_id', $post->id)
+        $reaction = Reaction::where('user_id', $userId)
+            ->where($blogForeignKey, $post->id)
             ->first();
 
-        if ($existing) {
-            // Đã like rồi -> bỏ like
-            $existing->delete();
-            $message = 'Đã bỏ thích bài viết.';
+        $liked = false;
+
+        if ($reaction) {
+            $reaction->delete();
+            $liked = false;
         } else {
-            // Chưa like -> tạo reaction
             Reaction::create([
-                'user_id'      => $user->id,
-                'blog_post_id' => $post->id,
-                'type'         => 'like',
+                'user_id' => $userId,
+                $blogForeignKey => $post->id,
             ]);
-            $message = 'Đã thích bài viết.';
+
+            $liked = true;
         }
 
-        return redirect()
-            ->route('blog.show', $post->slug)
-            ->with('success', $message);
+        $likeCount = Reaction::where($blogForeignKey, $post->id)->count();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'liked' => $liked,
+                'like_count' => $likeCount,
+                'message' => $liked ? 'Đã thích bài viết.' : 'Đã bỏ thích bài viết.',
+            ]);
+        }
+
+        return back()->with('success', $liked ? 'Đã thích bài viết.' : 'Đã bỏ thích bài viết.');
+    }
+
+    private function blogReactionForeignKey(): string
+    {
+        if (Schema::hasColumn('reactions', 'blog_post_id')) {
+            return 'blog_post_id';
+        }
+
+        if (Schema::hasColumn('reactions', 'post_id')) {
+            return 'post_id';
+        }
+
+        return 'blog_post_id';
     }
 }

@@ -2,135 +2,191 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\News;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 class NewsController extends Controller
 {
-    // Public: danh sách tin tức
-    public function index()
+    public function index(Request $request)
     {
-        $news = News::latest('published_at')
-            ->latest()
-            ->paginate(10);
+        $search = $request->query('search');
+        $categoryId = $request->query('category');
 
-        return view('news.index', compact('news'));
+        $categories = $this->activeCategories();
+
+        $news = News::with('category')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('title', 'like', '%' . $search . '%')
+                        ->orWhere('summary', 'like', '%' . $search . '%')
+                        ->orWhere('content', 'like', '%' . $search . '%')
+                        ->orWhere('source', 'like', '%' . $search . '%')
+                        ->orWhere('source_url', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->orderByRaw('COALESCE(published_at, created_at) DESC')
+            ->paginate(9)
+            ->withQueryString();
+
+        return view('news.index', compact('news', 'categories', 'search', 'categoryId'));
     }
 
-    // Public: chi tiết tin tức
     public function show(string $slug)
     {
-        $article = News::where('slug', $slug)
-            ->with(['comments.user'])
+        $newsItem = News::with([
+                'category',
+                'comments.user',
+            ])
+            ->where('slug', $slug)
             ->firstOrFail();
 
-        return view('news.show', compact('article'));
+        return view('news.show', compact('newsItem'));
     }
 
-    // ================== ADMIN CRUD ==================
-
-    // Admin: list
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
-        $news = News::latest()
-            ->paginate(10);
+        $search = $request->query('search');
+        $categoryId = $request->query('category');
 
-        return view('admin.news.index', compact('news'));
+        $categories = $this->allCategories();
+
+        $news = News::with('category')
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('title', 'like', '%' . $search . '%')
+                        ->orWhere('summary', 'like', '%' . $search . '%')
+                        ->orWhere('content', 'like', '%' . $search . '%')
+                        ->orWhere('source', 'like', '%' . $search . '%')
+                        ->orWhere('source_url', 'like', '%' . $search . '%');
+                });
+            })
+            ->when($categoryId, function ($query) use ($categoryId) {
+                $query->where('category_id', $categoryId);
+            })
+            ->orderByRaw('COALESCE(published_at, created_at) DESC')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.news.index', compact('news', 'categories', 'search', 'categoryId'));
     }
 
-    // Admin: form create
     public function create()
     {
-        return view('admin.news.create');
+        $categories = $this->allCategories();
+
+        return view('admin.news.create', compact('categories'));
     }
 
-    // Admin: store
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'thumbnail' => ['nullable', 'url'],
-            'source' => ['nullable', 'string', 'max:255'],
-            'published_at' => ['nullable', 'date'],
-            'content' => ['required', 'string'],
-        ]);
+        $validated = $this->validateNews($request);
 
-        $slug = Str::slug($validated['title']);
-        $baseSlug = $slug;
-        $i = 2;
-        while (News::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $i;
-            $i++;
-        }
+        $validated['slug'] = $this->uniqueSlug($validated['title']);
+        $validated['is_auto'] = false;
+        $validated['fetched_at'] = null;
 
-        News::create([
-            'title' => $validated['title'],
-            'slug' => $slug,
-            'thumbnail' => $validated['thumbnail'] ?? null,
-            'source' => $validated['source'] ?? null,
-            'published_at' => isset($validated['published_at'])
-                ? Carbon::parse($validated['published_at'])
-                : null,
-            'content' => $validated['content'],
-        ]);
+        News::create($validated);
 
-        return redirect()->route('admin.news.index')->with('success', 'Đã tạo tin tức.');
+        return redirect()
+            ->route('admin.news.index')
+            ->with('success', 'Đã tạo tin tức mới thành công.');
     }
 
-    // Admin: form edit
-    public function edit($id)
+    public function edit(int $id)
     {
         $article = News::findOrFail($id);
-        return view('admin.news.edit', compact('article'));
+        $categories = $this->allCategories();
+
+        return view('admin.news.edit', compact('article', 'categories'));
     }
 
-    // Admin: update
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $article = News::findOrFail($id);
 
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'thumbnail' => ['nullable', 'url'],
-            'source' => ['nullable', 'string', 'max:255'],
-            'published_at' => ['nullable', 'date'],
-            'content' => ['required', 'string'],
-        ]);
+        $validated = $this->validateNews($request);
 
-        // Nếu đổi title thì cập nhật slug (và đảm bảo unique)
-        $slug = $article->slug;
-        if ($validated['title'] !== $article->title) {
-            $slug = Str::slug($validated['title']);
-            $baseSlug = $slug;
-            $i = 2;
-            while (News::where('slug', $slug)->where('id', '!=', $article->id)->exists()) {
-                $slug = $baseSlug . '-' . $i;
-                $i++;
-            }
+        if ($article->title !== $validated['title']) {
+            $validated['slug'] = $this->uniqueSlug($validated['title'], $article->id);
         }
 
-        $article->update([
-            'title' => $validated['title'],
-            'slug' => $slug,
-            'thumbnail' => $validated['thumbnail'] ?? null,
-            'source' => $validated['source'] ?? null,
-            'published_at' => isset($validated['published_at'])
-                ? Carbon::parse($validated['published_at'])
-                : null,
-            'content' => $validated['content'],
-        ]);
+        $article->update($validated);
 
-        return redirect()->route('admin.news.index')->with('success', 'Đã cập nhật tin tức.');
+        return redirect()
+            ->route('admin.news.index')
+            ->with('success', 'Đã cập nhật tin tức thành công.');
     }
 
-    // Admin: delete
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $article = News::findOrFail($id);
         $article->delete();
 
-        return redirect()->route('admin.news.index')->with('success', 'Đã xoá tin tức.');
+        return redirect()
+            ->route('admin.news.index')
+            ->with('success', 'Đã xóa tin tức thành công.');
+    }
+
+    private function validateNews(Request $request): array
+    {
+        return $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'summary' => ['nullable', 'string', 'max:2000'],
+            'content' => ['required', 'string'],
+            'thumbnail' => ['nullable', 'url', 'max:1000'],
+            'source' => ['nullable', 'string', 'max:255'],
+            'source_url' => ['nullable', 'url', 'max:1000'],
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'published_at' => ['nullable', 'date'],
+        ]);
+    }
+
+    private function uniqueSlug(string $title, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($title);
+
+        if (! $baseSlug) {
+            $baseSlug = 'news-' . Str::random(8);
+        }
+
+        $slug = $baseSlug;
+        $counter = 2;
+
+        while (
+            News::where('slug', $slug)
+                ->when($ignoreId, function ($query) use ($ignoreId) {
+                    $query->where('id', '!=', $ignoreId);
+                })
+                ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    private function activeCategories()
+    {
+        $query = Category::query();
+
+        if (Schema::hasColumn('categories', 'is_active')) {
+            $query->where('is_active', true);
+        }
+
+        return $query->orderBy('name')->get();
+    }
+
+    private function allCategories()
+    {
+        return Category::query()
+            ->orderBy('name')
+            ->get();
     }
 }

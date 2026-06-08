@@ -2,15 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CryptoPrice extends Model
 {
-    use HasFactory;
-
-    public $timestamps = false;   // ⬅⬅⬅ THÊM DÒNG NÀY
+    public $timestamps = false;
 
     protected $fillable = [
         'coin_id',
@@ -21,6 +18,9 @@ class CryptoPrice extends Model
     ];
 
     protected $casts = [
+        'price_usd' => 'decimal:8',
+        'volume_24h' => 'decimal:2',
+        'percent_change_24h' => 'float',
         'fetched_at' => 'datetime',
     ];
 
