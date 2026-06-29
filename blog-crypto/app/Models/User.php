@@ -34,6 +34,7 @@ class User extends Authenticatable
     'experience_years',
     'expertise_areas',
     'profile_completed_at',
+'role',
 ];
 
     /**
@@ -81,10 +82,6 @@ class User extends Authenticatable
     }
 
     // Helper: kiểm tra user có role nào đó không
-    public function hasRole(string $roleName): bool
-    {
-        return $this->roles()->where('name', $roleName)->exists();
-    }
 
     public function authorApplications(): HasMany
 {
@@ -108,5 +105,31 @@ public function pendingAuthorApplication()
         && ! empty($this->headline)
         && ! empty($this->experience_years)
         && ! empty($this->expertise_areas);
+}
+
+public function hasRole(string|array $roles): bool
+{
+    $currentRole = strtoupper((string) ($this->role ?? ''));
+
+    if (is_array($roles)) {
+        return in_array($currentRole, array_map('strtoupper', $roles), true);
+    }
+
+    return $currentRole === strtoupper($roles);
+}
+
+public function isAdmin(): bool
+{
+    return $this->hasRole('ADMIN');
+}
+
+public function isAuthor(): bool
+{
+    return $this->hasRole('AUTHOR');
+}
+
+public function isUser(): bool
+{
+    return $this->hasRole('USER');
 }
 }

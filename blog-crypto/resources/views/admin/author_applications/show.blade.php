@@ -1,6 +1,9 @@
+@section('title', 'Chi tiết đơn đăng ký tác giả - CryptoBlog')
+
 <x-guest-layout>
     @php
         $areas = $application->expertise_areas ?? [];
+
         if (! is_array($areas)) {
             $areas = [];
         }
@@ -29,14 +32,34 @@
             'dot' => 'bg-slate-300',
         ];
 
-        $socialLinks = [
-            'Website cá nhân' => $application->website_url,
-            'LinkedIn' => $application->linkedin_url,
-            'X / Twitter' => $application->x_url,
-        ];
+        $formatDate = function ($value) {
+            if (! $value) {
+                return 'Chưa có';
+            }
+
+            try {
+                return \Carbon\Carbon::parse($value)->format('d/m/Y H:i');
+            } catch (\Throwable $e) {
+                return $value;
+            }
+        };
     @endphp
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <style>
+        .admin-review-content,
+        .admin-review-content * {
+            text-align: left !important;
+            text-indent: 0 !important;
+        }
+
+        .admin-review-content {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.9;
+        }
+    </style>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
 
         {{-- HEADER --}}
         <section class="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-indigo-950/20">
@@ -46,69 +69,83 @@
                 <div class="absolute inset-0 opacity-[0.06] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:38px_38px]"></div>
             </div>
 
-            <div class="relative p-6 md:p-10">
-                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                    <div class="min-w-0">
-                        <a href="{{ route('admin.author-applications.index') }}"
-                           class="inline-flex items-center text-sm font-semibold text-cyan-300 hover:text-cyan-200">
-                            ← Quay lại danh sách đơn
-                        </a>
+            <div class="relative grid grid-cols-1 lg:grid-cols-12 gap-8 p-6 md:p-10">
+                <div class="lg:col-span-8">
+                    <a href="{{ route('admin.author-applications.index') }}"
+                       class="inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200">
+                        ← Quay lại danh sách đơn
+                    </a>
 
-                        <div class="mt-5 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-sm text-indigo-200">
-                            <span class="h-2 w-2 rounded-full bg-indigo-300 shadow-[0_0_14px_rgba(129,140,248,0.9)]"></span>
-                            Author application detail
-                        </div>
-
-                        <h1 class="mt-5 text-4xl md:text-5xl font-black tracking-tight text-white leading-tight break-words [overflow-wrap:anywhere]">
-                            {{ $application->full_name }}
-                        </h1>
-
-                        <p class="mt-3 max-w-3xl text-slate-300 leading-relaxed break-words [overflow-wrap:anywhere]">
-                            {{ $application->headline ?: 'Ứng viên chưa cung cấp headline.' }}
-                        </p>
+                    <div class="mt-6 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-sm text-indigo-200">
+                        <span class="h-2 w-2 rounded-full bg-indigo-300 shadow-[0_0_14px_rgba(129,140,248,0.9)]"></span>
+                        Author application detail
                     </div>
 
-                    <div class="shrink-0">
-                        <span class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold {{ $badge['class'] }}">
+                    <h1 class="mt-5 text-4xl md:text-5xl font-black tracking-tight text-white leading-tight break-words [overflow-wrap:anywhere]">
+                        {{ $application->full_name ?: 'Hồ sơ tác giả' }}
+                    </h1>
+
+                    <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed text-left">
+                        Kiểm tra hồ sơ, kinh nghiệm, lĩnh vực chuyên môn và bài viết mẫu trước khi cấp quyền AUTHOR cho người dùng.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap items-center gap-3">
+                        <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold {{ $badge['class'] }}">
                             <span class="h-2 w-2 rounded-full {{ $badge['dot'] }}"></span>
                             {{ $badge['label'] }}
                         </span>
+
+                        <span class="rounded-full border border-white/10 bg-slate-950/50 px-3 py-1 text-xs text-slate-400">
+                            Gửi lúc: {{ $formatDate($application->created_at) }}
+                        </span>
+
+                        @if ($application->reviewed_at)
+                            <span class="rounded-full border border-white/10 bg-slate-950/50 px-3 py-1 text-xs text-slate-400">
+                                Xử lý lúc: {{ $formatDate($application->reviewed_at) }}
+                            </span>
+                        @endif
                     </div>
                 </div>
 
-                <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                        <div class="text-xs text-slate-500">Email</div>
-                        <div class="mt-1 text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">
-                            {{ $application->user?->email ?? 'Không có email' }}
-                        </div>
-                    </div>
+                <div class="lg:col-span-4">
+                    <div class="rounded-3xl border border-white/10 bg-slate-950/70 p-5 backdrop-blur-xl">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <div class="text-sm text-slate-400">Người gửi</div>
+                                <div class="mt-1 text-xl font-black text-white break-words [overflow-wrap:anywhere]">
+                                    {{ $application->user?->name ?? $application->full_name ?? 'Không rõ' }}
+                                </div>
+                                <div class="mt-1 text-sm text-slate-500 break-words [overflow-wrap:anywhere]">
+                                    {{ $application->user?->email ?? 'Không có email' }}
+                                </div>
+                            </div>
 
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                        <div class="text-xs text-slate-500">Số năm kinh nghiệm</div>
-                        <div class="mt-1 text-sm font-semibold text-white">
-                            {{ $application->experience_years ?? 0 }} năm
+                            <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-xl font-black text-white shrink-0">
+                                {{ strtoupper(mb_substr($application->full_name ?: 'A', 0, 1)) }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                        <div class="text-xs text-slate-500">Tài khoản hệ thống</div>
-                        <div class="mt-1 text-sm font-semibold text-white">
-                            ID: {{ $application->user?->id ?? 'N/A' }}
-                        </div>
-                    </div>
+                        <div class="mt-5 grid grid-cols-1 gap-3 text-sm">
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                <div class="text-slate-500">Bút danh</div>
+                                <div class="mt-1 font-bold text-white break-words [overflow-wrap:anywhere]">
+                                    {{ $application->public_name ?: 'Chưa có' }}
+                                </div>
+                            </div>
 
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                        <div class="text-xs text-slate-500">Thời gian gửi</div>
-                        <div class="mt-1 text-sm font-semibold text-white">
-                            {{ $application->created_at->format('d/m/Y H:i') }}
+                            <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                <div class="text-slate-500">Số năm kinh nghiệm</div>
+                                <div class="mt-1 font-bold text-white">
+                                    {{ $application->experience_years ?? 0 }} năm
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        {{-- STATUS MESSAGES --}}
+        {{-- FLASH --}}
         <section class="space-y-3">
             @if (session('success'))
                 <div class="rounded-2xl bg-emerald-400/10 border border-emerald-400/20 px-5 py-4 text-emerald-100">
@@ -116,9 +153,9 @@
                 </div>
             @endif
 
-            @if (session('warning'))
-                <div class="rounded-2xl bg-yellow-400/10 border border-yellow-400/20 px-5 py-4 text-yellow-100">
-                    {{ session('warning') }}
+            @if (session('error'))
+                <div class="rounded-2xl bg-rose-400/10 border border-rose-400/20 px-5 py-4 text-rose-100">
+                    {{ session('error') }}
                 </div>
             @endif
 
@@ -130,7 +167,7 @@
 
             @if ($errors->any())
                 <div class="rounded-2xl bg-rose-400/10 border border-rose-400/20 px-5 py-4 text-rose-100">
-                    <div class="font-semibold mb-2">Có lỗi xảy ra:</div>
+                    <div class="font-bold mb-2">Có lỗi xảy ra:</div>
                     <ul class="list-disc list-inside space-y-1">
                         @foreach ($errors->all() as $error)
                             <li class="break-words [overflow-wrap:anywhere]">{{ $error }}</li>
@@ -140,252 +177,263 @@
             @endif
         </section>
 
-        {{-- PROFILE INFO --}}
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <h2 class="text-xl font-black text-white">
-                    Hồ sơ ứng viên
-                </h2>
-
-                <p class="mt-2 text-sm text-slate-400">
-                    Thông tin định danh và hồ sơ chuyên môn mà người dùng cung cấp.
-                </p>
-
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                        <div class="text-xs text-slate-500">Tên công khai</div>
-                        <div class="mt-1 text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">
-                            {{ $application->public_name ?: 'Không có' }}
-                        </div>
-                    </div>
-
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                        <div class="text-xs text-slate-500">Tên thật / tên hiển thị</div>
-                        <div class="mt-1 text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">
-                            {{ $application->full_name }}
-                        </div>
-                    </div>
-
-                    <div class="md:col-span-2 rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                        <div class="text-xs text-slate-500">Lĩnh vực chuyên môn</div>
-
-                        <div class="mt-3 flex flex-wrap gap-2">
-                            @forelse ($areas as $area)
-                                <span class="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-100 break-words [overflow-wrap:anywhere]">
-                                    {{ $area }}
-                                </span>
-                            @empty
-                                <span class="text-sm text-slate-500">Chưa có thông tin</span>
-                            @endforelse
-                        </div>
-                    </div>
+        {{-- PROFILE OVERVIEW --}}
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <div class="text-sm text-slate-500">Headline</div>
+                <div class="mt-2 text-lg font-bold text-white text-left break-words [overflow-wrap:anywhere]">
+                    {{ $application->headline ?: 'Chưa có headline' }}
                 </div>
             </div>
 
-            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <h2 class="text-xl font-black text-white">
-                    Liên kết xác minh
-                </h2>
+            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <div class="text-sm text-slate-500">Website</div>
+                <div class="mt-2 text-sm text-cyan-200 text-left break-words [overflow-wrap:anywhere]">
+                    @if ($application->website_url)
+                        <a href="{{ $application->website_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-cyan-100">
+                            {{ $application->website_url }}
+                        </a>
+                    @else
+                        <span class="text-slate-400">Chưa có</span>
+                    @endif
+                </div>
+            </div>
 
-                <p class="mt-2 text-sm text-slate-400">
-                    Các kênh giúp admin đánh giá độ tin cậy của ứng viên.
-                </p>
+            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+                <div class="text-sm text-slate-500">LinkedIn / X</div>
+                <div class="mt-2 space-y-1 text-sm text-left break-words [overflow-wrap:anywhere]">
+                    @if ($application->linkedin_url)
+                        <a href="{{ $application->linkedin_url }}" target="_blank" rel="noopener noreferrer" class="block text-cyan-200 hover:text-cyan-100">
+                            {{ $application->linkedin_url }}
+                        </a>
+                    @endif
 
-                <div class="mt-6 space-y-3">
-                    @foreach ($socialLinks as $label => $url)
-                        <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                            <div class="text-xs text-slate-500">{{ $label }}</div>
+                    @if ($application->x_url)
+                        <a href="{{ $application->x_url }}" target="_blank" rel="noopener noreferrer" class="block text-cyan-200 hover:text-cyan-100">
+                            {{ $application->x_url }}
+                        </a>
+                    @endif
 
-                            <div class="mt-1 text-sm break-all">
-                                @if ($url)
-                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
-                                       class="text-cyan-300 hover:text-cyan-200 font-semibold">
-                                        {{ $url }}
-                                    </a>
-                                @else
-                                    <span class="text-slate-500">Không có</span>
-                                @endif
-                            </div>
-                        </div>
-                    @endforeach
+                    @if (! $application->linkedin_url && ! $application->x_url)
+                        <span class="text-slate-400">Chưa có</span>
+                    @endif
                 </div>
             </div>
         </section>
 
-        {{-- EXPERIENCE + MOTIVATION --}}
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-2xl bg-indigo-400/10 border border-indigo-400/20 flex items-center justify-center">
-                        ✍️
-                    </div>
+        {{-- EXPERTISE --}}
+        <section class="rounded-[2rem] border border-white/10 bg-white/[0.04] overflow-hidden">
+            <div class="p-5 md:p-6 border-b border-white/10">
+                <h2 class="text-2xl font-black text-white">
+                    Lĩnh vực chuyên môn
+                </h2>
 
-                    <h2 class="text-xl font-black text-white">
+                <p class="mt-2 text-sm text-slate-400">
+                    Các mảng nội dung người dùng tự đánh giá có kinh nghiệm hoặc quan tâm.
+                </p>
+            </div>
+
+            <div class="p-5 md:p-6">
+                @if (! empty($areas))
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($areas as $area)
+                            <span class="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-sm font-semibold text-cyan-100">
+                                {{ $area }}
+                            </span>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-sm text-slate-400">
+                        Người dùng chưa chọn lĩnh vực chuyên môn.
+                    </div>
+                @endif
+            </div>
+        </section>
+
+        {{-- MAIN CONTENT --}}
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <article class="rounded-[2rem] border border-white/10 bg-white/[0.04] overflow-hidden">
+                <div class="p-5 md:p-6 border-b border-white/10">
+                    <h2 class="text-2xl font-black text-white">
                         Tóm tắt kinh nghiệm
                     </h2>
                 </div>
 
-                <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/50 p-5">
-                    <p class="text-slate-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-8">
-                        {{ $application->experience_summary ?: 'Ứng viên chưa cung cấp tóm tắt kinh nghiệm.' }}
-                    </p>
-                </div>
-            </div>
-
-            <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <div class="flex items-center gap-3">
-                    <div class="h-10 w-10 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
-                        🎯
+                <div class="p-5 md:p-6">
+                    <div class="admin-review-content rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-left text-slate-200 leading-8 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                        {{ $application->experience_summary ?: 'Chưa có nội dung.' }}
                     </div>
+                </div>
+            </article>
 
-                    <h2 class="text-xl font-black text-white">
+            <article class="rounded-[2rem] border border-white/10 bg-white/[0.04] overflow-hidden">
+                <div class="p-5 md:p-6 border-b border-white/10">
+                    <h2 class="text-2xl font-black text-white">
                         Lý do muốn trở thành tác giả
                     </h2>
                 </div>
 
-                <div class="mt-5 rounded-2xl border border-white/10 bg-slate-950/50 p-5">
-                    <p class="text-slate-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-8">
-                        {{ $application->motivation ?: 'Ứng viên chưa cung cấp lý do.' }}
-                    </p>
+                <div class="p-5 md:p-6">
+                    <div class="admin-review-content rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-left text-slate-200 leading-8 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                        {{ $application->motivation ?: 'Chưa có nội dung.' }}
+                    </div>
                 </div>
-            </div>
+            </article>
         </section>
 
         {{-- SAMPLE ARTICLE --}}
-        <section class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-white">
-                        Bài viết mẫu
-                    </h2>
+        <section class="rounded-[2rem] border border-white/10 bg-white/[0.04] overflow-hidden">
+            <div class="p-5 md:p-6 border-b border-white/10">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <h2 class="text-2xl font-black text-white">
+                            Bài viết mẫu
+                        </h2>
 
-                    <p class="mt-2 text-sm text-slate-400">
-                        Admin nên đánh giá độ rõ ràng, tính chuyên môn, tính trung lập và rủi ro nội dung.
-                    </p>
-                </div>
+                        <p class="mt-2 text-sm text-slate-400">
+                            Admin nên đánh giá độ rõ ràng, tính chuyên môn, tính trung lập và rủi ro nội dung.
+                        </p>
+                    </div>
 
-                <div class="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-2 text-sm text-slate-300">
-                    Sample content
+                    <div class="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm text-slate-300">
+                        Sample content
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-6 rounded-3xl border border-white/10 bg-slate-950/60 overflow-hidden">
-                <div class="border-b border-white/10 p-5">
-                    <h3 class="text-2xl font-black text-white break-words [overflow-wrap:anywhere]">
-                        {{ $application->sample_article_title ?: 'Chưa có tiêu đề bài mẫu' }}
+            <div class="p-5 md:p-6">
+                <div class="rounded-3xl border border-white/10 bg-slate-950/60 p-5 md:p-7">
+                    <h3 class="text-left text-2xl md:text-3xl font-black text-white leading-tight break-words [overflow-wrap:anywhere]">
+                        {{ $application->sample_article_title ?: 'Chưa có tiêu đề bài viết mẫu' }}
                     </h3>
-                </div>
 
-                <div class="p-5">
-                    <div class="text-slate-300 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-8">
-                        {{ $application->sample_article_content ?: 'Ứng viên chưa cung cấp nội dung bài viết mẫu.' }}
+                    <div class="admin-review-content mt-6 text-left text-slate-200 leading-8 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                        {{ $application->sample_article_content ?: 'Chưa có nội dung bài viết mẫu.' }}
                     </div>
                 </div>
             </div>
         </section>
 
-        {{-- REVIEW INFORMATION --}}
-        @if ($application->status !== 'pending')
-            <section class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <h2 class="text-xl font-black text-white">
-                    Thông tin xét duyệt
+        {{-- REVIEW HISTORY --}}
+        @if ($application->isApproved() || $application->isRejected())
+            <section class="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 md:p-6">
+                <h2 class="text-2xl font-black text-white">
+                    Kết quả xét duyệt
                 </h2>
 
-                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                        <div class="text-xs text-slate-500">Người duyệt</div>
-                        <div class="mt-1 text-sm font-semibold text-white">
-                            {{ $application->reviewer?->name ?? 'Không có thông tin' }}
+                        <div class="text-sm text-slate-500">Trạng thái</div>
+                        <div class="mt-1 font-bold text-white">{{ $badge['label'] }}</div>
+                    </div>
+
+                    <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                        <div class="text-sm text-slate-500">Người duyệt</div>
+                        <div class="mt-1 font-bold text-white">
+                            {{ $application->reviewer?->name ?? 'Không rõ' }}
                         </div>
                     </div>
 
                     <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-                        <div class="text-xs text-slate-500">Thời gian duyệt</div>
-                        <div class="mt-1 text-sm font-semibold text-white">
-                            {{ $application->reviewed_at ? $application->reviewed_at->format('d/m/Y H:i') : 'Chưa có' }}
+                        <div class="text-sm text-slate-500">Thời gian duyệt</div>
+                        <div class="mt-1 font-bold text-white">
+                            {{ $formatDate($application->reviewed_at) }}
                         </div>
                     </div>
                 </div>
 
-                @if ($application->status === 'rejected')
-                    <div class="mt-6 rounded-2xl bg-rose-400/10 border border-rose-400/20 p-5">
-                        <div class="font-semibold text-rose-200">
-                            Lý do từ chối
-                        </div>
-
-                        <p class="mt-2 text-rose-100 whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-7">
-                            {{ $application->rejection_reason ?: 'Không có lý do cụ thể.' }}
-                        </p>
+                @if ($application->isRejected() && $application->rejection_reason)
+                    <div class="admin-review-content mt-5 rounded-3xl border border-rose-400/20 bg-rose-400/10 p-5 text-left text-rose-100 leading-8 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                        {{ $application->rejection_reason }}
                     </div>
                 @endif
             </section>
         @endif
 
-        {{-- ADMIN ACTIONS --}}
-        @if ($application->status === 'pending')
-            <section class="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                    <div>
-                        <h2 class="text-xl font-black text-white">
-                            Hành động của admin
-                        </h2>
+        {{-- ACTIONS --}}
+        <section class="rounded-[2rem] border border-white/10 bg-white/[0.04] overflow-hidden">
+            <div class="p-5 md:p-6 border-b border-white/10">
+                <h2 class="text-2xl font-black text-white">
+                    Hành động kiểm duyệt
+                </h2>
 
-                        <p class="mt-2 text-sm text-slate-400 max-w-2xl">
-                            Hãy kiểm tra kỹ hồ sơ, kinh nghiệm, lĩnh vực chuyên môn và bài viết mẫu trước khi cấp quyền AUTHOR.
+                <p class="mt-2 text-sm text-slate-400">
+                    Nếu hồ sơ phù hợp, admin có thể duyệt để cấp quyền AUTHOR. Nếu chưa phù hợp, hãy từ chối kèm lý do rõ ràng.
+                </p>
+            </div>
+
+            <div class="p-5 md:p-6">
+                @if ($application->isPending())
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <form method="POST"
+                              action="{{ route('admin.author-applications.approve', $application) }}"
+                              onsubmit="return confirm('Bạn có chắc muốn duyệt đơn này và cấp quyền AUTHOR cho người dùng không?')"
+                              class="rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+                            @csrf
+                            @method('PATCH')
+
+                            <div class="text-lg font-black text-emerald-100">
+                                Duyệt đơn
+                            </div>
+
+                            <p class="mt-2 text-sm text-slate-300 leading-7 text-left">
+                                Người dùng sẽ được cấp quyền AUTHOR và có thể viết bài trên hệ thống.
+                            </p>
+
+                            <button type="submit"
+                                    class="mt-5 w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition">
+                                Duyệt và cấp quyền AUTHOR
+                            </button>
+                        </form>
+
+                        <form method="POST"
+                              action="{{ route('admin.author-applications.reject', $application) }}"
+                              onsubmit="return confirm('Bạn có chắc muốn từ chối đơn này không?')"
+                              class="rounded-3xl border border-rose-400/20 bg-rose-400/10 p-5">
+                            @csrf
+                            @method('PATCH')
+
+                            <div class="text-lg font-black text-rose-100">
+                                Từ chối đơn
+                            </div>
+
+                            <p class="mt-2 text-sm text-slate-300 leading-7 text-left">
+                                Lý do từ chối sẽ giúp người dùng hiểu cần bổ sung hoặc chỉnh sửa gì.
+                            </p>
+
+                            <label class="mt-4 block text-sm font-bold text-slate-200 mb-2">
+                                Lý do từ chối
+                            </label>
+
+                            <textarea name="rejection_reason"
+                                      rows="5"
+                                      required
+                                      class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-rose-400 focus:ring-rose-400/30"
+                                      placeholder="VD: Hồ sơ cần bổ sung kinh nghiệm cụ thể hơn, bài viết mẫu còn ngắn hoặc chưa thể hiện đủ kiến thức crypto...">{{ old('rejection_reason') }}</textarea>
+
+                            <button type="submit"
+                                    class="mt-5 w-full rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/20 hover:from-rose-400 hover:to-orange-400 transition">
+                                Từ chối đơn
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <div class="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+                        <div class="text-lg font-bold text-white">
+                            Đơn này đã được xử lý.
+                        </div>
+
+                        <p class="mt-2 text-sm text-slate-400 leading-7 text-left">
+                            Bạn có thể quay lại danh sách để xem các hồ sơ khác.
                         </p>
+
+                        <a href="{{ route('admin.author-applications.index') }}"
+                           class="mt-5 inline-flex rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition">
+                            Quay lại danh sách
+                        </a>
                     </div>
-
-                    <form method="POST" action="{{ route('admin.author-applications.approve', $application) }}">
-                        @csrf
-                        @method('PATCH')
-
-                        <button type="submit"
-                                class="w-full lg:w-auto rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition">
-                            Duyệt và cấp quyền AUTHOR
-                        </button>
-                    </form>
-                </div>
-
-                <div class="mt-6 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 p-5 text-yellow-100 text-sm leading-relaxed">
-                    Sau khi duyệt, tài khoản người dùng sẽ được cấp quyền AUTHOR và có thể tạo bài viết. Bài viết của AUTHOR vẫn cần admin kiểm duyệt trước khi hiển thị công khai.
-                </div>
-
-                <form method="POST"
-                      action="{{ route('admin.author-applications.reject', $application) }}"
-                      class="mt-6 space-y-4">
-                    @csrf
-                    @method('PATCH')
-
-                    <div>
-                        <label for="rejection_reason" class="block font-semibold text-sm text-slate-200">
-                            Lý do từ chối
-                        </label>
-
-                        <textarea id="rejection_reason"
-                                  name="rejection_reason"
-                                  rows="5"
-                                  class="mt-2 block w-full rounded-2xl border-white/10 bg-slate-950/70 text-slate-200 shadow-sm focus:border-cyan-400 focus:ring-cyan-400/30"
-                                  placeholder="VD: Hồ sơ chưa thể hiện đủ kinh nghiệm, bài viết mẫu còn quá ngắn hoặc chưa phù hợp với định hướng nội dung..."
-                                  required>{{ old('rejection_reason') }}</textarea>
-
-                        @error('rejection_reason')
-                            <p class="mt-2 text-sm text-rose-400">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <button type="submit"
-                            class="rounded-2xl border border-rose-400/20 bg-rose-500/15 px-5 py-3 text-sm font-bold text-rose-100 hover:bg-rose-500/25 transition">
-                        Từ chối đơn
-                    </button>
-                </form>
-            </section>
-        @endif
-
-        <div>
-            <a href="{{ route('admin.author-applications.index') }}"
-               class="inline-flex items-center rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition">
-                ← Quay lại danh sách đơn
-            </a>
-        </div>
+                @endif
+            </div>
+        </section>
     </div>
 </x-guest-layout>

@@ -1,0 +1,65 @@
+
+  GET|HEAD  / .......................................................................................................................................................... home › BlogPostController@index
+  GET|HEAD  admin ........................................................................................................................................................................... admin.home
+  GET|HEAD  admin/author-applications ........................................................................................ admin.author-applications.index › Admin\AuthorApplicationController@index
+  GET|HEAD  admin/author-applications/{application} ............................................................................ admin.author-applications.show › Admin\AuthorApplicationController@show
+  PATCH     admin/author-applications/{application}/approve .............................................................. admin.author-applications.approve › Admin\AuthorApplicationController@approve
+  PATCH     admin/author-applications/{application}/reject ................................................................. admin.author-applications.reject › Admin\AuthorApplicationController@reject
+  GET|HEAD  admin/blogs/pending ........................................................................................................................ admin.blog.pending › BlogPostController@pending
+  PATCH     admin/blogs/{post}/approve ................................................................................................................. admin.blog.approve › BlogPostController@approve
+  PATCH     admin/blogs/{post}/reject .................................................................................................................... admin.blog.reject › BlogPostController@reject
+  GET|HEAD  admin/comments ........................................................................................................................ admin.comments.index › Admin\CommentController@index
+  DELETE    admin/comments/{comment} .......................................................................................................... admin.comments.destroy › Admin\CommentController@destroy
+  GET|HEAD  admin/dashboard .......................................................................................................................... admin.dashboard › Admin\DashboardController@index
+  GET|HEAD  admin/news .................................................................................................................................... admin.news.index › NewsController@adminIndex
+  POST      admin/news ......................................................................................................................................... admin.news.store › NewsController@store
+  GET|HEAD  admin/news/create ................................................................................................................................ admin.news.create › NewsController@create
+  PATCH     admin/news/{id} .................................................................................................................................. admin.news.update › NewsController@update
+  DELETE    admin/news/{id} ................................................................................................................................ admin.news.destroy › NewsController@destroy
+  GET|HEAD  admin/news/{id}/edit ................................................................................................................................. admin.news.edit › NewsController@edit
+  POST      author-applications/{application}/mark-seen ........................................................................... author.applications.mark-seen › AuthorApplicationController@markSeen
+  GET|HEAD  author/apply ...................................................................................................................... author.apply.create › AuthorApplicationController@create
+  POST      author/apply ........................................................................................................................ author.apply.store › AuthorApplicationController@store
+  GET|HEAD  blog ................................................................................................................................................. blog.index › BlogPostController@index
+  POST      blog ................................................................................................................................................. blog.store › BlogPostController@store
+  GET|HEAD  blog/create ........................................................................................................................................ blog.create › BlogPostController@create
+  DELETE    blog/images/{image} ................................................................................................................... blog.images.destroy › BlogPostController@deleteImage
+  POST      blog/{postId}/comments ................................................................................................................ blog.comments.store › CommentController@storeForBlog
+  POST      blog/{postId}/like ............................................................................................................................ blog.like › ReactionController@toggleForBlog
+  PATCH     blog/{post} ........................................................................................................................................ blog.update › BlogPostController@update
+  DELETE    blog/{post} ...................................................................................................................................... blog.destroy › BlogPostController@destroy
+  GET|HEAD  blog/{post}/edit ....................................................................................................................................... blog.edit › BlogPostController@edit
+  GET|HEAD  blog/{slug} ............................................................................................................................................ blog.show › BlogPostController@show
+  POST      chatbot/ask ............................................................................................................................................ chatbot.ask › ChatbotController@ask
+  DELETE    comments/{comment} ............................................................................................................................ comments.destroy › CommentController@destroy
+  GET|HEAD  confirm-password ................................................................................................................ password.confirm › Auth\ConfirmablePasswordController@show
+  POST      confirm-password .................................................................................................... generated::fhPQSbl7szlNbR3i › Auth\ConfirmablePasswordController@store
+  GET|HEAD  crypto ............................................................................................................................................... crypto.index › CryptoController@index
+  GET|HEAD  crypto/{symbol} ........................................................................................................................................ crypto.show › CryptoController@show
+  GET|HEAD  dashboard ........................................................................................................................................................................ dashboard
+  POST      email/verification-notification ..................................................................................... verification.send › Auth\EmailVerificationNotificationController@store
+  GET|HEAD  forgot-password ................................................................................................................. password.request › Auth\PasswordResetLinkController@create
+  POST      forgot-password .................................................................................................................... password.email › Auth\PasswordResetLinkController@store
+  GET|HEAD  login ................................................................................................................................... login › Auth\AuthenticatedSessionController@create
+  POST      login .............................................................................................................. generated::ilMYmTAqMMTQkleO › Auth\AuthenticatedSessionController@store
+  POST      logout ................................................................................................................................ logout › Auth\AuthenticatedSessionController@destroy
+  GET|HEAD  my/blogs .............................................................................................................................................. blog.my › BlogPostController@myPosts
+  POST      my/blogs/{post}/review-seen ...................................................................................................... blog.review.mark-seen › BlogPostController@markReviewSeen
+  GET|HEAD  news ..................................................................................................................................................... news.index › NewsController@index
+  POST      news/{newsId}/comments ................................................................................................................ news.comments.store › CommentController@storeForNews
+  GET|HEAD  news/{slug} ................................................................................................................................................ news.show › NewsController@show
+  PUT       password .................................................................................................................................. password.update › Auth\PasswordController@update
+  GET|HEAD  profile .............................................................................................................................................. profile.edit › ProfileController@edit
+  PATCH     profile .......................................................................................................................................... profile.update › ProfileController@update
+  DELETE    profile ........................................................................................................................................ profile.destroy › ProfileController@destroy
+  GET|HEAD  register ................................................................................................................................... register › Auth\RegisteredUserController@create
+  POST      register ................................................................................................................. generated::JaOubfjQVsd5vAGq › Auth\RegisteredUserController@store
+  POST      reset-password ........................................................................................................................... password.store › Auth\NewPasswordController@store
+  GET|HEAD  reset-password/{token} .................................................................................................................. password.reset › Auth\NewPasswordController@create
+  GET|HEAD  storage/{path} ............................................................................................................................................................... storage.local
+  GET|HEAD  up ............................................................................................................................................................. generated::U6mb46r7rqAFJSD0
+  GET|HEAD  verify-email .................................................................................................................. verification.notice › Auth\EmailVerificationPromptController
+  GET|HEAD  verify-email/{id}/{hash} .................................................................................................................. verification.verify › Auth\VerifyEmailController
+
+                                                                                                                                                                                     Showing [61] routes
+

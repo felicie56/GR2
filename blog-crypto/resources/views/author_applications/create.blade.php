@@ -442,14 +442,48 @@
                     </div>
                 </section>
 
-                <section class="rounded-3xl border border-yellow-400/20 bg-yellow-400/10 p-5">
-                    <div class="text-sm font-bold text-yellow-200">
-                        Cam kết nội dung
+                <section class="rounded-3xl border border-yellow-400/20 bg-yellow-400/10 p-5 space-y-4">
+                    <div>
+                        <div class="text-sm font-bold text-yellow-200">
+                            Cam kết nội dung
+                        </div>
+
+                        <p class="mt-2 text-sm text-slate-300 leading-7">
+                            Trước khi gửi đơn, bạn cần xác nhận hai nội dung dưới đây để đảm bảo hồ sơ minh bạch và phù hợp với định hướng của website.
+                        </p>
                     </div>
 
-                    <p class="mt-2 text-sm text-slate-300 leading-7">
-                        Khi gửi đơn, bạn xác nhận rằng nội dung cung cấp là trung thực, không nhằm mục đích lừa đảo, không quảng cáo trá hình và không đưa ra cam kết lợi nhuận chắc chắn cho người đọc.
-                    </p>
+                    <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-4 cursor-pointer">
+                        <input type="checkbox"
+                               name="truthful_information_confirmed"
+                               value="1"
+                               @checked(old('truthful_information_confirmed'))
+                               class="mt-1 rounded border-white/10 bg-slate-900 text-cyan-500 focus:ring-cyan-400">
+
+                        <span class="text-sm text-slate-300 leading-6">
+                            Tôi xác nhận các thông tin trong hồ sơ là đúng sự thật và có thể được admin dùng để xét duyệt quyền tác giả.
+                        </span>
+                    </label>
+
+                    @error('truthful_information_confirmed')
+                        <p class="text-sm text-rose-300">{{ $message }}</p>
+                    @enderror
+
+                    <label class="flex items-start gap-3 rounded-2xl border border-white/10 bg-slate-950/50 p-4 cursor-pointer">
+                        <input type="checkbox"
+                               name="content_policy_confirmed"
+                               value="1"
+                               @checked(old('content_policy_confirmed'))
+                               class="mt-1 rounded border-white/10 bg-slate-900 text-cyan-500 focus:ring-cyan-400">
+
+                        <span class="text-sm text-slate-300 leading-6">
+                            Tôi cam kết bài viết sau này không chứa nội dung lừa đảo, quảng cáo sai lệch, kêu gọi đầu tư rủi ro hoặc thông tin chưa kiểm chứng.
+                        </span>
+                    </label>
+
+                    @error('content_policy_confirmed')
+                        <p class="text-sm text-rose-300">{{ $message }}</p>
+                    @enderror
                 </section>
 
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-white/10">
