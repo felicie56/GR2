@@ -2,18 +2,19 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\CryptoController;
-use App\Http\Controllers\ReactionController;
-use App\Http\Controllers\CommentController;
-use App\Http\Controllers\NewsController;
-use App\Http\Controllers\BlogPostController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AuthorApplicationController;
+use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CryptoController;
+use App\Http\Controllers\EditorImageController;
+use App\Http\Controllers\NewsController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReactionController;
 
-use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AuthorApplicationController as AdminAuthorApplicationController;
 use App\Http\Controllers\Admin\CommentController as AdminCommentController;
+use App\Http\Controllers\Admin\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -104,7 +105,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/author/apply', [AuthorApplicationController::class, 'store'])
         ->name('author.apply.store');
 
-    Route::post('/author-applications/{application}/mark-seen', [AuthorApplicationController::class, 'markSeen'])
+    Route::post(
+        '/author-applications/{application}/mark-seen',
+        [AuthorApplicationController::class, 'markSeen']
+    )
         ->whereNumber('application')
         ->name('author.applications.mark-seen');
 
@@ -115,9 +119,32 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/my/blogs/{post}/review-seen', [BlogPostController::class, 'markReviewSeen'])
+    Route::post(
+        '/my/blogs/{post}/review-seen',
+        [BlogPostController::class, 'markReviewSeen']
+    )
         ->whereNumber('post')
         ->name('blog.review.mark-seen');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rich-text Editor Image Upload
+    |--------------------------------------------------------------------------
+    |
+    | Route này dùng chung cho:
+    | - Author chèn ảnh vào nội dung Blog;
+    | - Admin chèn ảnh vào nội dung News.
+    |
+    | Controller sẽ kiểm tra người dùng phải có role AUTHOR hoặc ADMIN.
+    */
+
+    Route::post(
+        '/editor/images/upload',
+        [EditorImageController::class, 'store']
+    )
+        ->middleware('throttle:30,1')
+        ->name('editor.images.upload');
 
 
     /*
@@ -126,15 +153,24 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/blog/{postId}/comments', [CommentController::class, 'storeForBlog'])
+    Route::post(
+        '/blog/{postId}/comments',
+        [CommentController::class, 'storeForBlog']
+    )
         ->whereNumber('postId')
         ->name('blog.comments.store');
 
-    Route::post('/news/{newsId}/comments', [CommentController::class, 'storeForNews'])
+    Route::post(
+        '/news/{newsId}/comments',
+        [CommentController::class, 'storeForNews']
+    )
         ->whereNumber('newsId')
         ->name('news.comments.store');
 
-    Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])
+    Route::delete(
+        '/comments/{comment}',
+        [CommentController::class, 'destroy']
+    )
         ->whereNumber('comment')
         ->name('comments.destroy');
 
@@ -145,7 +181,10 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/blog/{postId}/like', [ReactionController::class, 'toggleForBlog'])
+    Route::post(
+        '/blog/{postId}/like',
+        [ReactionController::class, 'toggleForBlog']
+    )
         ->whereNumber('postId')
         ->name('blog.like');
 });
@@ -180,9 +219,12 @@ Route::middleware(['auth', 'role:AUTHOR'])->group(function () {
         ->whereNumber('post')
         ->name('blog.destroy');
 
-        Route::delete('/blog/images/{image}', [BlogPostController::class, 'deleteImage'])
-    ->whereNumber('image')
-    ->name('blog.images.destroy');
+    Route::delete(
+        '/blog/images/{image}',
+        [BlogPostController::class, 'deleteImage']
+    )
+        ->whereNumber('image')
+        ->name('blog.images.destroy');
 });
 
 
@@ -216,7 +258,24 @@ Route::middleware(['auth', 'role:ADMIN'])->group(function () {
     Route::get('/admin/comments', [AdminCommentController::class, 'index'])
         ->name('admin.comments.index');
 
-    Route::delete('/admin/comments/{comment}', [AdminCommentController::class, 'destroy'])
+    Route::patch(
+        '/admin/comments/{comment}/approve',
+        [AdminCommentController::class, 'approve']
+    )
+        ->whereNumber('comment')
+        ->name('admin.comments.approve');
+
+    Route::patch(
+        '/admin/comments/{comment}/reject',
+        [AdminCommentController::class, 'reject']
+    )
+        ->whereNumber('comment')
+        ->name('admin.comments.reject');
+
+    Route::delete(
+        '/admin/comments/{comment}',
+        [AdminCommentController::class, 'destroy']
+    )
         ->whereNumber('comment')
         ->name('admin.comments.destroy');
 
@@ -227,18 +286,29 @@ Route::middleware(['auth', 'role:ADMIN'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/admin/author-applications', [AdminAuthorApplicationController::class, 'index'])
-        ->name('admin.author-applications.index');
+    Route::get(
+        '/admin/author-applications',
+        [AdminAuthorApplicationController::class, 'index']
+    )->name('admin.author-applications.index');
 
-    Route::get('/admin/author-applications/{application}', [AdminAuthorApplicationController::class, 'show'])
+    Route::get(
+        '/admin/author-applications/{application}',
+        [AdminAuthorApplicationController::class, 'show']
+    )
         ->whereNumber('application')
         ->name('admin.author-applications.show');
 
-    Route::patch('/admin/author-applications/{application}/approve', [AdminAuthorApplicationController::class, 'approve'])
+    Route::patch(
+        '/admin/author-applications/{application}/approve',
+        [AdminAuthorApplicationController::class, 'approve']
+    )
         ->whereNumber('application')
         ->name('admin.author-applications.approve');
 
-    Route::patch('/admin/author-applications/{application}/reject', [AdminAuthorApplicationController::class, 'reject'])
+    Route::patch(
+        '/admin/author-applications/{application}/reject',
+        [AdminAuthorApplicationController::class, 'reject']
+    )
         ->whereNumber('application')
         ->name('admin.author-applications.reject');
 
@@ -252,11 +322,17 @@ Route::middleware(['auth', 'role:ADMIN'])->group(function () {
     Route::get('/admin/blogs/pending', [BlogPostController::class, 'pending'])
         ->name('admin.blog.pending');
 
-    Route::patch('/admin/blogs/{post}/approve', [BlogPostController::class, 'approve'])
+    Route::patch(
+        '/admin/blogs/{post}/approve',
+        [BlogPostController::class, 'approve']
+    )
         ->whereNumber('post')
         ->name('admin.blog.approve');
 
-    Route::patch('/admin/blogs/{post}/reject', [BlogPostController::class, 'reject'])
+    Route::patch(
+        '/admin/blogs/{post}/reject',
+        [BlogPostController::class, 'reject']
+    )
         ->whereNumber('post')
         ->name('admin.blog.reject');
 

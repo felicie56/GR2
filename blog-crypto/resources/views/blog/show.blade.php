@@ -1,6 +1,61 @@
 @section('title', ($post->title ?? 'Chi tiết Blog') . ' - CryptoBlog')
 
 <x-guest-layout>
+    <style>
+        .comment-section,
+        .comment-section * {
+            text-align: left !important;
+            text-indent: 0 !important;
+        }
+
+        .comment-section textarea,
+        .comment-section input {
+            text-align: left !important;
+        }
+
+        .comment-section textarea::placeholder,
+        .comment-section input::placeholder {
+            text-align: left !important;
+        }
+
+        .comment-section .comment-body,
+        .comment-section [data-comment-body],
+        .comment-section .comment-content,
+        .comment-section .comment-text {
+            text-align: left !important;
+            text-indent: 0 !important;
+            white-space: pre-line;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.8;
+            width: 100%;
+        }
+
+        .comment-section .comment-meta,
+        .comment-section .comment-author,
+        .comment-section .comment-date {
+            text-align: left !important;
+        }
+
+        .comment-section .comment-empty,
+        .comment-section [data-comment-empty] {
+            text-align: center !important;
+        }
+
+        .comment-section .comment-empty *,
+        .comment-section [data-comment-empty] * {
+            text-align: center !important;
+        }
+
+        .comment-section .comment-submit-wrap {
+            text-align: right !important;
+        }
+
+        .comment-section .comment-submit-wrap * {
+            text-align: center !important;
+        }
+    </style>
+
     @php
         $comments = $post->comments ?? collect();
         $reactions = $post->reactions ?? collect();
@@ -129,7 +184,7 @@
                 </div>
 
                 @include('partials.blog-images-gallery', ['post' => $post])
-                
+
                 <div class="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
                     <div>
                         <div class="text-sm font-semibold text-white">
@@ -149,17 +204,19 @@
             </div>
         </article>
 
-        @include('partials.comments-section', [
-            'comments' => $comments,
-            'storeRoute' => route('blog.comments.store', $post->id),
-        ])
+        <div class="comment-section mt-10">
+            @include('partials.comments-section', [
+                'comments' => $comments,
+                'storeRoute' => route('blog.comments.store', $post->id),
+            ])
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const likeForm = document.querySelector('.js-like-form');
 
-            if (!likeForm) {
+            if (! likeForm) {
                 return;
             }
 
@@ -172,7 +229,7 @@
             likeForm.addEventListener('submit', async function (event) {
                 event.preventDefault();
 
-                if (!likeButton) {
+                if (! likeButton) {
                     return;
                 }
 
@@ -182,6 +239,8 @@
                 if (likeMessage) {
                     likeMessage.classList.add('hidden');
                     likeMessage.textContent = '';
+                    likeMessage.classList.remove('text-rose-300');
+                    likeMessage.classList.add('text-emerald-300');
                 }
 
                 try {
@@ -197,7 +256,7 @@
 
                     const data = await response.json();
 
-                    if (!response.ok) {
+                    if (! response.ok) {
                         throw new Error(data.message || 'Không thể xử lý lượt thích.');
                     }
 

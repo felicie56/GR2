@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class BlogPostController extends Controller
 {
@@ -19,7 +20,16 @@ class BlogPostController extends Controller
 
     $categories = $this->activeCategories();
 
-    $query = BlogPost::with(['author', 'category', 'images', 'comments', 'reactions'])
+    $query = BlogPost::with([
+        'author',
+        'category',
+        'images',
+        'reactions',
+        'comments' => function ($query) {
+            $query->where('status', 'approved')
+                ->latest();
+        },
+    ])
         ->when(Schema::hasColumn('blog_posts', 'status'), function ($query) {
             $query->where(function ($statusQuery) {
                 $statusQuery->where('status', 'approved')
@@ -75,8 +85,12 @@ class BlogPostController extends Controller
                 'author',
                 'category',
                 'images',
-                'comments.user',
                 'reactions',
+                'comments' => function ($query) {
+                    $query->where('status', 'approved')
+                        ->with('user')
+                        ->latest();
+                },
             ])
             ->where('slug', $slug)
             ->firstOrFail();
@@ -95,10 +109,12 @@ class BlogPostController extends Controller
     {
         $validated = $this->validateBlogPost($request);
 
+        $cleanContent = $this->prepareRichText($validated['content']);
+
         $data = [
             'title' => $validated['title'],
             'slug' => $this->uniqueSlug($validated['title']),
-            'content' => $validated['content'],
+            'content' => $cleanContent,
         ];
 
         if (Schema::hasColumn('blog_posts', 'category_id')) {
@@ -173,9 +189,11 @@ class BlogPostController extends Controller
 
         $validated = $this->validateBlogPost($request, isUpdate: true);
 
+        $cleanContent = $this->prepareRichText($validated['content']);
+
         $data = [
             'title' => $validated['title'],
-            'content' => $validated['content'],
+            'content' => $cleanContent,
         ];
 
         if ($post->title !== $validated['title']) {
@@ -377,7 +395,7 @@ class BlogPostController extends Controller
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string', 'min:10'],
+            'content' => ['required', 'string', 'max:2000000'],
             'category_id' => ['nullable', 'exists:categories,id'],
 
             /*
@@ -489,6 +507,228 @@ class BlogPostController extends Controller
         if ($path && Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+
+    /**
+     * Làm sạch HTML từ CKEditor và kiểm tra bài viết có nội dung thực tế.
+     */
+    private function prepareRichText(string $html): string
+    {
+        $cleanHtml = $this->sanitizeRichText($html);
+
+        $plainText = html_entity_decode(
+            strip_tags($cleanHtml),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
+        $plainText = preg_replace('/\x{00A0}/u', ' ', $plainText) ?? $plainText;
+        $plainText = trim(preg_replace('/\s+/u', ' ', $plainText) ?? $plainText);
+
+        if (mb_strlen($plainText) < 10) {
+            throw ValidationException::withMessages([
+                'content' => 'Nội dung phải có ít nhất 10 ký tự thực tế.',
+            ]);
+        }
+
+        return $cleanHtml;
+    }
+
+    /**
+     * Bộ lọc HTML gọn, không cần cài thêm Composer package.
+     *
+     * Chỉ giữ các thẻ CKEditor mà website đang dùng và loại bỏ:
+     * - script/iframe/svg/form;
+     * - event handler như onclick, onerror;
+     * - URL javascript:, data:, vbscript:.
+     */
+    private function sanitizeRichText(string $html): string
+    {
+        $html = trim($html);
+
+        $html = preg_replace('/<!--.*?-->/s', '', $html) ?? '';
+
+        $html = preg_replace(
+            '#<(script|style|iframe|object|embed|svg|math|form|input|button|textarea|select|option|video|audio|canvas)\b[^>]*>.*?</\1\s*>#is',
+            '',
+            $html
+        ) ?? '';
+
+        $allowedTags = '<p><br><h2><h3><h4><strong><b><em><i><u><s>'
+            . '<blockquote><ul><ol><li><a><figure><figcaption><img>';
+
+        $html = strip_tags($html, $allowedTags);
+
+        $html = preg_replace_callback(
+            '/<([a-z0-9]+)\b([^>]*)>/i',
+            function (array $matches): string {
+                $tag = strtolower($matches[1]);
+                $attributes = $this->extractHtmlAttributes($matches[2] ?? '');
+
+                return $this->rebuildAllowedOpeningTag($tag, $attributes);
+            },
+            $html
+        ) ?? '';
+
+        return trim($html);
+    }
+
+    private function extractHtmlAttributes(string $rawAttributes): array
+    {
+        $attributes = [];
+
+        preg_match_all(
+            '/([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))/',
+            $rawAttributes,
+            $matches,
+            PREG_SET_ORDER
+        );
+
+        foreach ($matches as $match) {
+            $name = strtolower($match[1]);
+            $value = $match[2] !== ''
+                ? $match[2]
+                : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+
+            $attributes[$name] = html_entity_decode(
+                $value,
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            );
+        }
+
+        return $attributes;
+    }
+
+    private function rebuildAllowedOpeningTag(
+        string $tag,
+        array $attributes
+    ): string {
+        if ($tag === 'br') {
+            return '<br>';
+        }
+
+        if ($tag === 'a') {
+            $href = $this->sanitizeContentUrl(
+                $attributes['href'] ?? null,
+                allowMailto: true
+            );
+
+            if (! $href) {
+                return '<a>';
+            }
+
+            $output = '<a href="' . e($href) . '"';
+
+            if (! empty($attributes['title'])) {
+                $output .= ' title="' . e($attributes['title']) . '"';
+            }
+
+            if (($attributes['target'] ?? null) === '_blank') {
+                $output .= ' target="_blank" rel="noopener noreferrer"';
+            }
+
+            return $output . '>';
+        }
+
+        if ($tag === 'img') {
+            $src = $this->sanitizeContentUrl($attributes['src'] ?? null);
+
+            if (! $src) {
+                return '';
+            }
+
+            $output = '<img src="' . e($src) . '"';
+
+            if (isset($attributes['alt'])) {
+                $output .= ' alt="' . e($attributes['alt']) . '"';
+            } else {
+                $output .= ' alt=""';
+            }
+
+            foreach (['width', 'height'] as $dimension) {
+                $value = $attributes[$dimension] ?? null;
+
+                if ($value !== null && preg_match('/^\d{1,5}$/', $value)) {
+                    $output .= ' ' . $dimension . '="' . e($value) . '"';
+                }
+            }
+
+            return $output . '>';
+        }
+
+        if ($tag === 'figure') {
+            $allowedClasses = [
+                'image',
+                'image-style-side',
+                'image-style-align-left',
+                'image-style-align-right',
+                'image-style-block-align-left',
+                'image-style-block-align-right',
+            ];
+
+            $classes = preg_split(
+                '/\s+/',
+                trim($attributes['class'] ?? ''),
+                -1,
+                PREG_SPLIT_NO_EMPTY
+            ) ?: [];
+
+            $classes = array_values(array_intersect($classes, $allowedClasses));
+
+            if (! in_array('image', $classes, true)) {
+                array_unshift($classes, 'image');
+            }
+
+            return '<figure class="' . e(implode(' ', $classes)) . '">';
+        }
+
+        return '<' . $tag . '>';
+    }
+
+    private function sanitizeContentUrl(
+        ?string $url,
+        bool $allowMailto = false
+    ): ?string {
+        if ($url === null) {
+            return null;
+        }
+
+        $url = trim($url);
+
+        if ($url === '') {
+            return null;
+        }
+
+        $normalized = strtolower(
+            preg_replace('/[\x00-\x20]+/', '', $url) ?? $url
+        );
+
+        if (Str::startsWith($normalized, [
+            'javascript:',
+            'data:',
+            'vbscript:',
+            'file:',
+        ])) {
+            return null;
+        }
+
+        if ($allowMailto && Str::startsWith($normalized, 'mailto:')) {
+            return $url;
+        }
+
+        if (Str::startsWith($url, ['/', './', '../', '#'])) {
+            return $url;
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return filter_var($url, FILTER_VALIDATE_URL)
+                ? $url
+                : null;
+        }
+
+        return null;
     }
 
     private function uniqueSlug(string $title, ?int $ignoreId = null): string

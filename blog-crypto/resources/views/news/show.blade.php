@@ -1,4 +1,59 @@
 <x-guest-layout>
+    <style>
+        .comment-section,
+        .comment-section * {
+            text-align: left !important;
+            text-indent: 0 !important;
+        }
+
+        .comment-section textarea,
+        .comment-section input {
+            text-align: left !important;
+        }
+
+        .comment-section textarea::placeholder,
+        .comment-section input::placeholder {
+            text-align: left !important;
+        }
+
+        .comment-section .comment-body,
+        .comment-section [data-comment-body],
+        .comment-section .comment-content,
+        .comment-section .comment-text {
+            text-align: left !important;
+            text-indent: 0 !important;
+            white-space: pre-line;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.8;
+            width: 100%;
+        }
+
+        .comment-section .comment-meta,
+        .comment-section .comment-author,
+        .comment-section .comment-date {
+            text-align: left !important;
+        }
+
+        .comment-section .comment-empty,
+        .comment-section [data-comment-empty] {
+            text-align: center !important;
+        }
+
+        .comment-section .comment-empty *,
+        .comment-section [data-comment-empty] * {
+            text-align: center !important;
+        }
+
+        .comment-section .comment-submit-wrap {
+            text-align: right !important;
+        }
+
+        .comment-section .comment-submit-wrap * {
+            text-align: center !important;
+        }
+    </style>
+
     @php
         $article = $newsItem ?? $article ?? $news ?? null;
 
@@ -202,10 +257,12 @@
                 </div>
             </article>
 
-            @include('partials.comments-section', [
-                'comments' => $comments,
-                'storeRoute' => route('news.comments.store', $article->id),
-            ])
+            <div class="comment-section mt-10">
+                @include('partials.comments-section', [
+                    'comments' => $comments,
+                    'storeRoute' => route('news.comments.store', $article->id),
+                ])
+            </div>
         </div>
     @endif
 </x-guest-layout>

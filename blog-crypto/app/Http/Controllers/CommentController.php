@@ -5,89 +5,104 @@ namespace App\Http\Controllers;
 use App\Models\BlogPost;
 use App\Models\Comment;
 use App\Models\News;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class CommentController extends Controller
 {
-    public function storeForBlog(Request $request, int $postId)
-    {
+    public function storeForBlog(
+        Request $request,
+        int $postId
+    ): JsonResponse|RedirectResponse {
         $post = BlogPost::findOrFail($postId);
 
         $validated = $request->validate([
-            'content' => ['required', 'string', 'min:2', 'max:2000'],
+            'content' => [
+                'required',
+                'string',
+                'min:2',
+                'max:2000',
+            ],
         ]);
 
         $blogForeignKey = $this->blogCommentForeignKey();
 
-        $comment = Comment::create([
-            'user_id' => auth()->id(),
+        Comment::create([
+            'user_id' => $request->user()->id,
             $blogForeignKey => $post->id,
             'content' => $validated['content'],
+            'status' => Comment::STATUS_PENDING,
         ]);
 
-        $comment->load('user');
+        $approvedCommentCount = Comment::query()
+            ->where($blogForeignKey, $post->id)
+            ->approved()
+            ->count();
 
-        $commentCount = Comment::where($blogForeignKey, $post->id)->count();
+        $message = 'Bình luận đã được gửi và đang chờ admin duyệt.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Bình luận đã được gửi.',
-                'comment_count' => $commentCount,
-                'comment' => [
-                    'id' => $comment->id,
-                    'content' => $comment->content,
-                    'user_name' => $comment->user?->name ?? 'Người dùng',
-                    'created_at' => $comment->created_at?->format('d/m/Y H:i'),
-                ],
-            ]);
+                'message' => $message,
+                'comment_count' => $approvedCommentCount,
+            ], 201);
         }
 
-        return back()->with('success', 'Bình luận đã được gửi.');
+        return back()->with('success', $message);
     }
 
-    public function storeForNews(Request $request, int $newsId)
-    {
+    public function storeForNews(
+        Request $request,
+        int $newsId
+    ): JsonResponse|RedirectResponse {
         $news = News::findOrFail($newsId);
 
         $validated = $request->validate([
-            'content' => ['required', 'string', 'min:2', 'max:2000'],
+            'content' => [
+                'required',
+                'string',
+                'min:2',
+                'max:2000',
+            ],
         ]);
 
-        $comment = Comment::create([
-            'user_id' => auth()->id(),
+        Comment::create([
+            'user_id' => $request->user()->id,
             'news_id' => $news->id,
             'content' => $validated['content'],
+            'status' => Comment::STATUS_PENDING,
         ]);
 
-        $comment->load('user');
+        $approvedCommentCount = Comment::query()
+            ->where('news_id', $news->id)
+            ->approved()
+            ->count();
 
-        $commentCount = Comment::where('news_id', $news->id)->count();
+        $message = 'Bình luận đã được gửi và đang chờ admin duyệt.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Bình luận đã được gửi.',
-                'comment_count' => $commentCount,
-                'comment' => [
-                    'id' => $comment->id,
-                    'content' => $comment->content,
-                    'user_name' => $comment->user?->name ?? 'Người dùng',
-                    'created_at' => $comment->created_at?->format('d/m/Y H:i'),
-                ],
-            ]);
+                'message' => $message,
+                'comment_count' => $approvedCommentCount,
+            ], 201);
         }
 
-        return back()->with('success', 'Bình luận đã được gửi.');
+        return back()->with('success', $message);
     }
 
-    public function destroy(Comment $comment)
+    public function destroy(Comment $comment): RedirectResponse
     {
         $user = auth()->user();
 
         $isOwner = $comment->user_id === auth()->id();
-        $isAdmin = $user && method_exists($user, 'hasRole') && $user->hasRole('ADMIN');
+
+        $isAdmin = $user
+            && method_exists($user, 'hasRole')
+            && $user->hasRole('ADMIN');
 
         abort_unless($isOwner || $isAdmin, 403);
 

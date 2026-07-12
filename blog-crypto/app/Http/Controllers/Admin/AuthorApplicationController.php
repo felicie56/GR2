@@ -7,6 +7,7 @@ use App\Models\AuthorApplication;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AuthorApplicationController extends Controller
@@ -63,13 +64,44 @@ class AuthorApplicationController extends Controller
                 'user_seen_at' => null,
             ]);
 
-            /*
-             * Database hiện tại của project đang dùng cột users.role.
-             * Không dùng role_id hoặc bảng pivot roles ở đây để tránh lỗi 404/500.
-             */
-            $application->user->forceFill([
-                'role' => 'AUTHOR',
-            ])->save();
+            if (Schema::hasColumn('users', 'role')) {
+                $application->user->forceFill([
+                    'role' => 'AUTHOR',
+                ])->save();
+            }
+
+            if (
+                Schema::hasTable('roles') &&
+                Schema::hasTable('role_user') &&
+                Schema::hasColumn('roles', 'id') &&
+                Schema::hasColumn('roles', 'name') &&
+                Schema::hasColumn('role_user', 'user_id') &&
+                Schema::hasColumn('role_user', 'role_id')
+            ) {
+                $authorRoleId = DB::table('roles')
+                    ->whereRaw('UPPER(name) = ?', ['AUTHOR'])
+                    ->value('id');
+
+                if ($authorRoleId) {
+                    $values = [];
+
+                    if (Schema::hasColumn('role_user', 'created_at')) {
+                        $values['created_at'] = now();
+                    }
+
+                    if (Schema::hasColumn('role_user', 'updated_at')) {
+                        $values['updated_at'] = now();
+                    }
+
+                    DB::table('role_user')->updateOrInsert(
+                        [
+                            'user_id' => $application->user_id,
+                            'role_id' => $authorRoleId,
+                        ],
+                        $values
+                    );
+                }
+            }
         });
 
         return redirect()
