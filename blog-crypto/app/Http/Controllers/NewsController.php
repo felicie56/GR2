@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\News;
+use App\Services\NewsContentPresenter;
+use App\Services\NewsRelatedLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -11,6 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class NewsController extends Controller
 {
+    public function __construct(
+        private readonly NewsRelatedLinkService $relatedLinkService,
+        private readonly NewsContentPresenter $contentPresenter
+    ) {
+    }
+
     public function index(Request $request)
     {
         $search = $request->query('search');
@@ -52,11 +60,35 @@ class NewsController extends Controller
                         ->with('user')
                         ->latest();
                 },
+                'relatedLinks.relatedNews.category',
             ])
             ->where('slug', $slug)
             ->firstOrFail();
 
-        return view('news.show', compact('newsItem'));
+        $contentBlocks = $this->contentPresenter->toBlocks(
+            $newsItem->content
+        );
+
+        $relatedLinks = $newsItem->relatedLinks
+            ->filter(fn ($link) => $link->relatedNews !== null)
+            ->values();
+
+        $blockCount = max(1, count($contentBlocks));
+
+        $inlineRelatedLinks = $relatedLinks
+            ->groupBy(function ($link) use ($blockCount): int {
+                return min(
+                    $blockCount,
+                    max(1, (int) ($link->paragraph_index ?: 1))
+                );
+            });
+
+        return view('news.show', compact(
+            'newsItem',
+            'contentBlocks',
+            'relatedLinks',
+            'inlineRelatedLinks'
+        ));
     }
 
     public function adminIndex(Request $request)
@@ -110,7 +142,9 @@ class NewsController extends Controller
         $validated['is_auto'] = false;
         $validated['fetched_at'] = null;
 
-        News::create($validated);
+        $article = News::create($validated);
+
+        $this->relatedLinkService->generateFor($article);
 
         return redirect()
             ->route('admin.news.index')
@@ -146,6 +180,8 @@ class NewsController extends Controller
         }
 
         $article->update($validated);
+
+        $this->relatedLinkService->generateFor($article->fresh());
 
         return redirect()
             ->route('admin.news.index')
@@ -248,14 +284,20 @@ class NewsController extends Controller
             '/([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))/',
             $rawAttributes,
             $matches,
-            PREG_SET_ORDER
+            PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL
         );
 
         foreach ($matches as $match) {
-            $name = strtolower($match[1]);
-            $value = $match[2] !== ''
-                ? $match[2]
-                : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+            $name = strtolower($match[1] ?? '');
+
+            if ($name === '') {
+                continue;
+            }
+
+            $value = $match[2]
+                ?? $match[3]
+                ?? $match[4]
+                ?? '';
 
             $attributes[$name] = html_entity_decode(
                 $value,

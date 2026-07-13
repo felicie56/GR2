@@ -22,3 +22,28 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Backup files
+*.zip
+*.sql
+*backup*
+*source*.zip
+
+# Runtime data
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/*
+
+# Generated frontend files
+/public/build/
+/public/storage

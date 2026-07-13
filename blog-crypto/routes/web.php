@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthorApplicationController;
 use App\Http\Controllers\BlogPostController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ChatbotFeedbackController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CryptoController;
 use App\Http\Controllers\EditorImageController;
@@ -41,8 +42,34 @@ Route::get('/crypto/{symbol}', [CryptoController::class, 'show'])
     ->where('symbol', '[A-Za-z0-9\-_]+')
     ->name('crypto.show');
 
-Route::post('/chatbot/ask', [ChatbotController::class, 'ask'])
-    ->name('chatbot.ask');
+/*
+|--------------------------------------------------------------------------
+| AI Chatbot
+|--------------------------------------------------------------------------
+| Public cho cả guest và user đăng nhập. Guest được nhận một token bảo mật
+| trong cookie HttpOnly; session UUID được frontend lưu để tiếp tục hội thoại.
+*/
+
+Route::prefix('chatbot')
+    ->middleware('throttle:' . (int) config('chatbot.rate_limit.requests_per_minute', 12) . ',1')
+    ->group(function () {
+        Route::post('/ask', [ChatbotController::class, 'ask'])
+            ->name('chatbot.ask');
+
+        Route::post('/sessions', [ChatbotController::class, 'startSession'])
+            ->name('chatbot.sessions.start');
+
+        Route::get('/sessions/{uuid}', [ChatbotController::class, 'history'])
+            ->whereUuid('uuid')
+            ->name('chatbot.sessions.history');
+
+        Route::post(
+            '/messages/{message}/feedback',
+            [ChatbotFeedbackController::class, 'store']
+        )
+            ->whereNumber('message')
+            ->name('chatbot.feedback.store');
+    });
 
 
 /*

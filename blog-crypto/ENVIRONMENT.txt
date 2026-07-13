@@ -1,5 +1,0 @@
-]633;E;echo "PHP: $(php -v | head -n 1)";c0354874-4bec-4c62-8490-ab213084beb0]633;CPHP: PHP 8.4.22 (cli) (built: Jun  6 2026 06:34:49) (NTS)
-Node: v18.19.1
-NPM: 9.2.0
-Composer: Composer version 2.10.1 2026-06-04 10:25:59
-OS: Ubuntu 24.04.4 LTS

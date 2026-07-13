@@ -128,13 +128,28 @@
                               class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-blue-400 focus:ring-blue-400/30">{{ old('summary', $article->summary) }}</textarea>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-bold text-slate-200 mb-2">Nội dung</label>
-                    <textarea name="content"
-                              rows="12"
-                              required
-                              class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-blue-400 focus:ring-blue-400/30">{{ old('content', $article->content) }}</textarea>
-                </div>
+                <section class="rounded-3xl border border-blue-400/20 bg-blue-400/10 p-5 md:p-6 space-y-5">
+                    <div>
+                        <h2 class="text-xl font-black text-white">
+                            Nội dung tin tức
+                        </h2>
+
+                        <p class="mt-2 text-sm text-slate-300 leading-7">
+                            Chỉnh sửa cấu trúc bài bằng đề mục, định dạng chữ, danh sách và trích dẫn.
+                            Ảnh mới có thể được chèn trực tiếp tại vị trí con trỏ trong nội dung.
+                        </p>
+                    </div>
+
+                    <textarea
+                        id="news-content-editor"
+                        name="content"
+                        rows="18"
+                        required
+                        data-rich-text-editor
+                        data-upload-url="{{ route('editor.images.upload') }}"
+                        class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-blue-400 focus:ring-blue-400/30"
+                    >{{ old('content', $article->content) }}</textarea>
+                </section>
 
                 <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
                     <div class="flex flex-wrap gap-3">

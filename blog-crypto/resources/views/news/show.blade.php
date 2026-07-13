@@ -1,59 +1,4 @@
 <x-guest-layout>
-    <style>
-        .comment-section,
-        .comment-section * {
-            text-align: left !important;
-            text-indent: 0 !important;
-        }
-
-        .comment-section textarea,
-        .comment-section input {
-            text-align: left !important;
-        }
-
-        .comment-section textarea::placeholder,
-        .comment-section input::placeholder {
-            text-align: left !important;
-        }
-
-        .comment-section .comment-body,
-        .comment-section [data-comment-body],
-        .comment-section .comment-content,
-        .comment-section .comment-text {
-            text-align: left !important;
-            text-indent: 0 !important;
-            white-space: pre-line;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            line-height: 1.8;
-            width: 100%;
-        }
-
-        .comment-section .comment-meta,
-        .comment-section .comment-author,
-        .comment-section .comment-date {
-            text-align: left !important;
-        }
-
-        .comment-section .comment-empty,
-        .comment-section [data-comment-empty] {
-            text-align: center !important;
-        }
-
-        .comment-section .comment-empty *,
-        .comment-section [data-comment-empty] * {
-            text-align: center !important;
-        }
-
-        .comment-section .comment-submit-wrap {
-            text-align: right !important;
-        }
-
-        .comment-section .comment-submit-wrap * {
-            text-align: center !important;
-        }
-    </style>
-
     @php
         $article = $newsItem ?? $article ?? $news ?? null;
 
@@ -70,15 +15,9 @@
         };
 
         $comments = $article?->comments ?? collect();
-
-        $contentParagraphs = collect();
-
-        if ($article && $article->content) {
-            $contentParagraphs = collect(preg_split('/\R{2,}/', trim($article->content)))
-                ->map(fn ($paragraph) => trim(preg_replace('/\s+/', ' ', $paragraph)))
-                ->filter()
-                ->values();
-        }
+        $contentBlocks = $contentBlocks ?? [];
+        $relatedLinks = $relatedLinks ?? collect();
+        $inlineRelatedLinks = $inlineRelatedLinks ?? collect();
     @endphp
 
     @if (! $article)
@@ -89,19 +28,21 @@
         </div>
     @else
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
             <article class="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-slate-950/20">
-
                 {{-- HERO --}}
                 <div class="relative min-h-[320px] md:min-h-[480px] bg-slate-900 overflow-hidden">
                     @if ($article->thumbnail)
-                        <img src="{{ $article->thumbnail }}"
-                             alt="{{ $article->title }}"
-                             class="absolute inset-0 h-full w-full object-cover">
+                        <img
+                            src="{{ $article->thumbnail }}"
+                            alt="{{ $article->title }}"
+                            class="absolute inset-0 h-full w-full object-cover"
+                        >
+
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent"></div>
                     @else
                         <div class="absolute inset-0 bg-gradient-to-br from-blue-600/30 via-cyan-500/20 to-indigo-500/30"></div>
                         <div class="absolute inset-0 opacity-[0.06] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-[size:38px_38px]"></div>
+
                         <div class="absolute inset-0 flex items-center justify-center">
                             <div class="h-28 w-28 rounded-[2rem] bg-white/10 border border-white/20 flex items-center justify-center text-5xl font-black text-white">
                                 {{ strtoupper(mb_substr($article->title, 0, 1)) }}
@@ -110,8 +51,10 @@
                     @endif
 
                     <div class="absolute left-0 right-0 bottom-0 p-6 md:p-10">
-                        <a href="{{ route('news.index') }}"
-                           class="inline-flex mb-5 text-sm font-semibold text-cyan-300 hover:text-cyan-200">
+                        <a
+                            href="{{ route('news.index') }}"
+                            class="inline-flex mb-5 text-sm font-semibold text-cyan-300 hover:text-cyan-200"
+                        >
                             ← Quay lại Tin tức
                         </a>
 
@@ -155,7 +98,7 @@
 
                 {{-- META --}}
                 <div class="p-6 md:p-10 border-b border-white/10">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
                             <div class="text-xs text-slate-500">Nguồn tin</div>
                             <div class="mt-1 text-sm font-semibold text-white break-words [overflow-wrap:anywhere]">
@@ -176,6 +119,13 @@
                                 {{ $comments->count() }} bình luận
                             </div>
                         </div>
+
+                        <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                            <div class="text-xs text-slate-500">Tin đã liên kết</div>
+                            <div class="mt-1 text-sm font-semibold text-white">
+                                {{ $relatedLinks->count() }} bài liên quan
+                            </div>
+                        </div>
                     </div>
 
                     @if ($article->is_auto || $article->source_url)
@@ -187,16 +137,17 @@
                                     </div>
 
                                     <p class="mt-2 text-sm text-slate-300 leading-7">
-                                        Tin này được hệ thống tự động tổng hợp từ RSS/API và được chuyển thành bản tóm tắt tiếng Việt.
-                                        Nội dung trên CryptoBlog chỉ mang tính tham khảo, không sao chép toàn bộ bài viết gốc.
+                                        Tin này được hệ thống tự động tổng hợp từ RSS/API, lưu lại nguồn xuất bản và phân tích nội dung để liên kết với các tin trước đó có cùng chủ đề.
                                     </p>
                                 </div>
 
                                 @if ($article->source_url)
-                                    <a href="{{ $article->source_url }}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="shrink-0 inline-flex justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition">
+                                    <a
+                                        href="{{ $article->source_url }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer nofollow"
+                                        class="shrink-0 inline-flex justify-center rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition"
+                                    >
                                         Đọc bài gốc →
                                     </a>
                                 @endif
@@ -207,35 +158,106 @@
 
                 {{-- CONTENT --}}
                 <div class="p-6 md:p-10">
-                    <div class="mx-auto max-w-3xl space-y-5 text-left">
-                        @forelse ($contentParagraphs as $paragraph)
-                            <p class="text-left text-slate-200 leading-8 break-words [overflow-wrap:anywhere]">
-                                {{ $paragraph }}
-                            </p>
-                        @empty
+                    <div class="article-content mx-auto max-w-3xl text-left">
+                        @if ($contentBlocks === [])
                             <p class="text-left text-slate-300 leading-8">
                                 Nội dung tin tức đang được cập nhật.
                             </p>
-                        @endforelse
+                        @else
+                            @foreach ($contentBlocks as $blockIndex => $contentBlock)
+                                <div class="news-content-block">
+                                    {!! $contentBlock !!}
+                                </div>
+
+                                @foreach ($inlineRelatedLinks->get($blockIndex + 1, collect()) as $relation)
+                                    @include('partials.news-related-inline', [
+                                        'relation' => $relation,
+                                    ])
+                                @endforeach
+                            @endforeach
+                        @endif
                     </div>
 
                     @if ($article->source_url)
-                        <div class="mt-8 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+                        <section class="mt-10 rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-5 md:p-6">
                             <div class="text-sm font-bold text-emerald-200">
                                 Nguồn tin gốc
                             </div>
 
                             <p class="mt-2 text-sm text-slate-300 leading-7">
-                                Người dùng có thể đọc bài viết đầy đủ tại nguồn gốc để xem thêm bối cảnh và thông tin chi tiết.
+                                Nội dung trên CryptoBlog là bản tổng hợp. Hãy mở nguồn gốc để kiểm tra đầy đủ dữ kiện, phát biểu và bối cảnh của bài viết.
                             </p>
 
-                            <a href="{{ $article->source_url }}"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="mt-4 inline-flex rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition">
+                            <a
+                                href="{{ $article->source_url }}"
+                                target="_blank"
+                                rel="noopener noreferrer nofollow"
+                                class="mt-4 inline-flex rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition"
+                            >
                                 Đọc bài gốc tại {{ $article->source ?? 'nguồn tin' }}
                             </a>
-                        </div>
+                        </section>
+                    @endif
+
+                    @if ($relatedLinks->isNotEmpty())
+                        <section class="mt-10 rounded-[2rem] border border-white/10 bg-slate-950/45 p-5 md:p-7">
+                            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+                                <div>
+                                    <div class="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">
+                                        Internal linking
+                                    </div>
+
+                                    <h2 class="mt-2 text-2xl font-black text-white">
+                                        Các tin trước đó có liên quan
+                                    </h2>
+
+                                    <p class="mt-2 text-sm leading-6 text-slate-400">
+                                        Danh sách được hệ thống tự động chấm điểm dựa trên chuyên mục, thực thể, từ khóa, độ giống tiêu đề và độ mới của tin.
+                                    </p>
+                                </div>
+
+                                @if ($article->related_links_generated_at)
+                                    <div class="text-xs text-slate-500">
+                                        Phân tích lúc {{ $article->related_links_generated_at->format('d/m/Y H:i') }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @foreach ($relatedLinks as $relation)
+                                    @php
+                                        $relatedArticle = $relation->relatedNews;
+                                    @endphp
+
+                                    @if ($relatedArticle)
+                                        <a
+                                            href="{{ route('news.show', $relatedArticle->slug) }}"
+                                            class="group rounded-3xl border border-white/10 bg-white/[0.035] p-5 hover:border-cyan-300/30 hover:bg-cyan-400/[0.06] transition"
+                                        >
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="rounded-full border border-blue-300/20 bg-blue-300/10 px-3 py-1 text-xs font-bold text-blue-200">
+                                                    {{ $relatedArticle->category?->name ?? 'Tin tức' }}
+                                                </span>
+
+                                                <span class="text-xs text-slate-500">
+                                                    {{ number_format((float) $relation->score, 1) }} điểm
+                                                </span>
+                                            </div>
+
+                                            <h3 class="mt-4 text-base font-black leading-6 text-white group-hover:text-cyan-200 transition break-words [overflow-wrap:anywhere]">
+                                                {{ $relatedArticle->title }}
+                                            </h3>
+
+                                            @if ($relation->reason)
+                                                <p class="mt-3 text-sm leading-6 text-slate-400">
+                                                    {{ $relation->reason }}
+                                                </p>
+                                            @endif
+                                        </a>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </section>
                     @endif
 
                     <div class="mt-10 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
@@ -249,20 +271,20 @@
                             </p>
                         </div>
 
-                        <a href="{{ route('news.index') }}"
-                           class="inline-flex items-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10 transition">
+                        <a
+                            href="{{ route('news.index') }}"
+                            class="inline-flex items-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
+                        >
                             ← Quay lại Tin tức
                         </a>
                     </div>
                 </div>
             </article>
 
-            <div class="comment-section mt-10">
-                @include('partials.comments-section', [
-                    'comments' => $comments,
-                    'storeRoute' => route('news.comments.store', $article->id),
-                ])
-            </div>
+            @include('partials.comments-section', [
+                'comments' => $comments,
+                'storeRoute' => route('news.comments.store', $article->id),
+            ])
         </div>
     @endif
 </x-guest-layout>
