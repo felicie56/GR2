@@ -33,7 +33,7 @@
                 </h1>
 
                 <p class="mt-4 max-w-2xl text-slate-300 leading-relaxed">
-                    Cập nhật nội dung, thumbnail và ảnh minh họa cho bài viết.
+                    Cập nhật nội dung bằng trình soạn thảo trực quan và chèn ảnh minh họa ngay tại vị trí cần thiết trong bài.
                 </p>
             </div>
         </section>
@@ -135,68 +135,65 @@
                 </div>
             </section>
 
-            <div>
-                <label class="block text-sm font-bold text-slate-200 mb-2">
-                    Nội dung bài viết
-                </label>
-
-                <textarea name="content"
-                          rows="14"
-                          required
-                          class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-cyan-400 focus:ring-cyan-400/30">{{ old('content', $post->content) }}</textarea>
-            </div>
-
-            <section class="rounded-3xl border border-emerald-400/20 bg-emerald-400/10 p-5 space-y-5">
+            <section class="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5 md:p-6 space-y-5">
                 <div>
                     <h2 class="text-xl font-black text-white">
-                        Ảnh minh họa trong bài
+                        Nội dung bài viết
                     </h2>
 
-                    <p class="mt-2 text-sm text-slate-300">
-                        Quản lý ảnh minh họa đang có hoặc thêm ảnh mới.
+                    <p class="mt-2 text-sm text-slate-300 leading-7">
+                        Bạn có thể định dạng nội dung và chèn ảnh trực tiếp tại vị trí con trỏ.
+                        Ảnh mới không còn bị đưa cố định xuống cuối bài.
                     </p>
                 </div>
 
-                @if ($imageItems->count() > 0)
+                <textarea
+                    id="blog-content-editor"
+                    name="content"
+                    rows="18"
+                    required
+                    data-rich-text-editor
+                    data-upload-url="{{ route('editor.images.upload') }}"
+                    class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-cyan-400 focus:ring-cyan-400/30"
+                >{{ old('content', $post->content) }}</textarea>
+            </section>
+
+            @if ($imageItems->count() > 0)
+                <section class="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-5 space-y-5">
+                    <div>
+                        <h2 class="text-xl font-black text-white">
+                            Ảnh minh họa kiểu cũ
+                        </h2>
+
+                        <p class="mt-2 text-sm text-slate-300 leading-7">
+                            Đây là các ảnh từng được tải theo cơ chế cũ và đang hiển thị ở cuối bài.
+                            Bạn có thể giữ lại hoặc chọn xóa. Ảnh mới nên được chèn trực tiếp trong trình soạn thảo phía trên.
+                        </p>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         @foreach ($imageItems as $image)
                             <div class="overflow-hidden rounded-3xl border border-white/10 bg-slate-950/60">
-                                <img src="{{ $image->image_path }}"
-                                     alt="{{ $image->original_name ?: 'Ảnh minh họa' }}"
-                                     class="h-56 w-full object-cover">
+                                <img
+                                    src="{{ $image->image_path }}"
+                                    alt="{{ $image->original_name ?: 'Ảnh minh họa' }}"
+                                    class="h-56 w-full object-cover"
+                                >
 
                                 <label class="flex items-center gap-3 p-4 text-sm text-slate-300">
-                                    <input type="checkbox"
-                                           name="delete_image_ids[]"
-                                           value="{{ $image->id }}"
-                                           class="rounded border-white/10 bg-slate-900 text-rose-500 focus:ring-rose-400">
+                                    <input
+                                        type="checkbox"
+                                        name="delete_image_ids[]"
+                                        value="{{ $image->id }}"
+                                        class="rounded border-white/10 bg-slate-900 text-rose-500 focus:ring-rose-400"
+                                    >
                                     <span>Xóa ảnh này</span>
                                 </label>
                             </div>
                         @endforeach
                     </div>
-                @else
-                    <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-sm text-slate-400">
-                        Bài viết chưa có ảnh minh họa phụ.
-                    </div>
-                @endif
-
-                <div>
-                    <label class="block text-sm font-bold text-slate-200 mb-2">
-                        Thêm ảnh minh họa mới
-                    </label>
-
-                    <input type="file"
-                           name="images[]"
-                           multiple
-                           accept="image/jpeg,image/png,image/webp"
-                           class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-2xl file:border-0 file:bg-emerald-500 file:px-5 file:py-3 file:text-sm file:font-bold file:text-white hover:file:bg-emerald-400">
-                </div>
-
-                <p class="text-xs text-slate-400">
-                    Hỗ trợ JPG, PNG, WEBP. Tối đa 8 ảnh mỗi lần upload, mỗi ảnh tối đa 4MB.
-                </p>
-            </section>
+                </section>
+            @endif
 
             <div class="rounded-3xl border border-yellow-400/20 bg-yellow-400/10 p-5">
                 <div class="text-sm font-bold text-yellow-200">

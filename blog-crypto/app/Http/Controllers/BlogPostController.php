@@ -575,31 +575,47 @@ class BlogPostController extends Controller
     }
 
     private function extractHtmlAttributes(string $rawAttributes): array
-    {
-        $attributes = [];
+{
+    $attributes = [];
 
-        preg_match_all(
-            '/([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))/',
-            $rawAttributes,
-            $matches,
-            PREG_SET_ORDER
-        );
+    preg_match_all(
+        '/([a-zA-Z_:][a-zA-Z0-9:._-]*)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+))/',
+        $rawAttributes,
+        $matches,
+        PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL
+    );
 
-        foreach ($matches as $match) {
-            $name = strtolower($match[1]);
-            $value = $match[2] !== ''
-                ? $match[2]
-                : ($match[3] !== '' ? $match[3] : ($match[4] ?? ''));
+    foreach ($matches as $match) {
+        $name = strtolower($match[1] ?? '');
 
-            $attributes[$name] = html_entity_decode(
-                $value,
-                ENT_QUOTES | ENT_HTML5,
-                'UTF-8'
-            );
+        if ($name === '') {
+            continue;
         }
 
-        return $attributes;
+        /*
+         * Tùy thuộc thuộc tính dùng:
+         * - dấu ngoặc kép: src="..."
+         * - dấu ngoặc đơn: src='...'
+         * - không có ngoặc: width=500
+         *
+         * Các nhóm không khớp sẽ là null, không gây lỗi
+         * Undefined array key.
+         */
+        $value =
+            $match[2]
+            ?? $match[3]
+            ?? $match[4]
+            ?? '';
+
+        $attributes[$name] = html_entity_decode(
+            $value,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
     }
+
+    return $attributes;
+}
 
     private function rebuildAllowedOpeningTag(
         string $tag,

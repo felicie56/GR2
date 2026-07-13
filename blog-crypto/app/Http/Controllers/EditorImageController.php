@@ -12,9 +12,16 @@ class EditorImageController extends Controller
     {
         $user = $request->user();
 
+        /*
+         * hasRole() của project chỉ nhận một string,
+         * nên phải kiểm tra AUTHOR và ADMIN riêng.
+         */
         $canUpload = $user
             && method_exists($user, 'hasRole')
-            && $user->hasRole(['AUTHOR', 'ADMIN']);
+            && (
+                $user->hasRole('AUTHOR')
+                || $user->hasRole('ADMIN')
+            );
 
         abort_unless(
             $canUpload,
@@ -49,8 +56,7 @@ class EditorImageController extends Controller
 
         $file = $validated['upload'];
 
-        $folder =
-            'editor-images/' . now()->format('Y/m');
+        $folder = 'editor-images/' . now()->format('Y/m');
 
         $path = $file->store(
             $folder,

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Category;
 use App\Models\News;
+use App\Services\NewsRelatedLinkService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -19,7 +20,7 @@ class FetchRssNews extends Command
 
     protected $description = 'Fetch crypto news from RSS feeds, translate to Vietnamese, and save into news table';
 
-    public function handle(): int
+    public function handle(NewsRelatedLinkService $relatedLinkService): int
     {
         $sources = collect(config('news_feeds.sources', []))
             ->filter(fn ($source) => ($source['enabled'] ?? true) === true)
@@ -103,7 +104,7 @@ class FetchRssNews extends Command
                     continue;
                 }
 
-                News::create([
+                $news = News::create([
                     'title' => $normalized['title'],
                     'slug' => $this->uniqueSlug($normalized['title']),
                     'summary' => $normalized['summary'],
@@ -119,9 +120,26 @@ class FetchRssNews extends Command
                     'fetched_at' => now(),
                 ]);
 
-                $createdCount++;
+                try {
+                    $links = $relatedLinkService->generateFor($news);
 
-                $this->line('Đã lưu: ' . $normalized['title']);
+                    $this->line(
+                        'Đã lưu: ' . $normalized['title']
+                        . ' | Tin liên quan: ' . $links->count()
+                    );
+                } catch (\Throwable $exception) {
+                    /*
+                     * Việc tạo tin vẫn thành công ngay cả khi bước phân tích
+                     * liên kết gặp lỗi. Admin có thể chạy lại command
+                     * news:generate-related-links sau.
+                     */
+                    $this->warn(
+                        'Đã lưu tin nhưng chưa tạo được liên kết: '
+                        . $exception->getMessage()
+                    );
+                }
+
+                $createdCount++;
             }
         }
 

@@ -12,21 +12,15 @@ use Illuminate\Support\Facades\Schema;
 
 class CommentController extends Controller
 {
+    private const MAX_COMMENT_WORDS = 50;
+
     public function storeForBlog(
         Request $request,
         int $postId
     ): JsonResponse|RedirectResponse {
         $post = BlogPost::findOrFail($postId);
 
-        $validated = $request->validate([
-            'content' => [
-                'required',
-                'string',
-                'min:2',
-                'max:2000',
-            ],
-        ]);
-
+        $validated = $this->validateComment($request);
         $blogForeignKey = $this->blogCommentForeignKey();
 
         Comment::create([
@@ -60,14 +54,7 @@ class CommentController extends Controller
     ): JsonResponse|RedirectResponse {
         $news = News::findOrFail($newsId);
 
-        $validated = $request->validate([
-            'content' => [
-                'required',
-                'string',
-                'min:2',
-                'max:2000',
-            ],
-        ]);
+        $validated = $this->validateComment($request);
 
         Comment::create([
             'user_id' => $request->user()->id,
@@ -98,7 +85,7 @@ class CommentController extends Controller
     {
         $user = auth()->user();
 
-        $isOwner = $comment->user_id === auth()->id();
+        $isOwner = (int) $comment->user_id === (int) auth()->id();
 
         $isAdmin = $user
             && method_exists($user, 'hasRole')
@@ -109,6 +96,57 @@ class CommentController extends Controller
         $comment->delete();
 
         return back()->with('success', 'Đã xóa bình luận.');
+    }
+
+    /**
+     * Validate nội dung bình luận cho cả Blog và News.
+     *
+     * Dùng regex Unicode thay vì str_word_count() vì str_word_count()
+     * không đếm chính xác tiếng Việt có dấu.
+     */
+    private function validateComment(Request $request): array
+    {
+        return $request->validate([
+            'content' => [
+                'required',
+                'string',
+                'min:2',
+                'max:1000',
+                function (
+                    string $attribute,
+                    mixed $value,
+                    \Closure $fail
+                ): void {
+                    $wordCount = $this->countWords((string) $value);
+
+                    if ($wordCount > self::MAX_COMMENT_WORDS) {
+                        $fail(
+                            'Bình luận chỉ được tối đa '
+                            . self::MAX_COMMENT_WORDS
+                            . ' từ. Nội dung hiện có '
+                            . $wordCount
+                            . ' từ.'
+                        );
+                    }
+                },
+            ],
+        ], [
+            'content.required' => 'Bạn chưa nhập nội dung bình luận.',
+            'content.string' => 'Nội dung bình luận không hợp lệ.',
+            'content.min' => 'Bình luận phải có ít nhất 2 ký tự.',
+            'content.max' => 'Bình luận quá dài. Vui lòng rút gọn nội dung.',
+        ]);
+    }
+
+    private function countWords(string $content): int
+    {
+        preg_match_all(
+            "/[\\p{L}\\p{N}]+(?:['’\\-][\\p{L}\\p{N}]+)*/u",
+            trim(strip_tags($content)),
+            $matches
+        );
+
+        return count($matches[0] ?? []);
     }
 
     private function blogCommentForeignKey(): string

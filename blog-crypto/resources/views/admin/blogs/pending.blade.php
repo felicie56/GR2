@@ -159,10 +159,11 @@
                 <div class="divide-y divide-white/10">
                     @foreach ($postItems as $post)
                         @php
-                            $contentParagraphs = collect(preg_split('/\R{2,}/', trim($post->content ?? '')))
-                                ->map(fn ($paragraph) => trim(preg_replace('/\s+/', ' ', $paragraph)))
-                                ->filter()
-                                ->values();
+                            $rawContent = trim((string) ($post->content ?? ''));
+                            $hasRichTextMarkup = $rawContent !== strip_tags($rawContent);
+                            $inlineImageCount = preg_match_all('/<img\b/i', $rawContent);
+                            $legacyImageCount = $post->images?->count() ?? 0;
+                            $totalImageCount = $inlineImageCount + $legacyImageCount;
 
                             $commentCount = method_exists($post, 'comments')
                                 ? ($post->relationLoaded('comments') ? $post->comments->count() : $post->comments()->count())
@@ -212,10 +213,15 @@
                                             </div>
 
                                             <div class="flex items-center justify-between gap-3">
-                                                <span class="text-sm text-slate-400">Ảnh minh họa</span>
+                                                <span class="text-sm text-slate-400">Tổng ảnh trong bài</span>
                                                 <span class="text-sm font-bold text-white">
-                                                    {{ $post->images?->count() ?? 0 }}
+                                                    {{ $totalImageCount }}
                                                 </span>
+                                            </div>
+
+                                            <div class="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3 text-xs text-slate-400 leading-5">
+                                                Ảnh chèn giữa nội dung: <span class="font-bold text-cyan-200">{{ $inlineImageCount }}</span><br>
+                                                Ảnh minh họa kiểu cũ: <span class="font-bold text-cyan-200">{{ $legacyImageCount }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -241,22 +247,37 @@
                                         {{ $post->title }}
                                     </h3>
 
-                                    {{-- ARTICLE CONTENT PREVIEW --}}
-                                    <div class="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-                                        <div class="mb-4 text-sm font-bold text-slate-300">
-                                            Nội dung bài viết
+                                    {{-- FULL ARTICLE PREVIEW --}}
+                                    <div class="mt-6 overflow-hidden rounded-3xl border border-cyan-400/20 bg-slate-950/55 shadow-xl shadow-slate-950/20">
+                                        <div class="flex flex-col gap-3 border-b border-white/10 bg-cyan-400/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <div class="text-sm font-black text-white">
+                                                    Bản xem trước đầy đủ
+                                                </div>
+                                                <p class="mt-1 text-xs text-slate-400">
+                                                    Nội dung dưới đây được hiển thị đúng định dạng tác giả đã soạn, bao gồm đề mục, trích dẫn, liên kết và ảnh chèn giữa bài.
+                                                </p>
+                                            </div>
+
+                                            <span class="inline-flex w-fit items-center rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-200">
+                                                {{ $inlineImageCount }} ảnh trong nội dung
+                                            </span>
                                         </div>
 
-                                        <div class="article-content mx-0 max-w-none space-y-5 text-left">
-                                            @forelse ($contentParagraphs as $paragraph)
-                                                <p class="text-left text-slate-200 leading-8 break-words [overflow-wrap:anywhere]">
-                                                    {{ $paragraph }}
-                                                </p>
-                                            @empty
-                                                <p class="text-left text-slate-400">
-                                                    Bài viết chưa có nội dung.
-                                                </p>
-                                            @endforelse
+                                        <div class="admin-article-preview p-5 md:p-7">
+                                            <div class="article-content mx-0 max-w-none text-left">
+                                                @if ($rawContent === '')
+                                                    <p class="text-left text-slate-400">
+                                                        Bài viết chưa có nội dung.
+                                                    </p>
+                                                @elseif ($hasRichTextMarkup)
+                                                    {!! $rawContent !!}
+                                                @else
+                                                    <p class="whitespace-pre-line text-left text-slate-200 leading-8 break-words [overflow-wrap:anywhere]">
+                                                        {{ $rawContent }}
+                                                    </p>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
 

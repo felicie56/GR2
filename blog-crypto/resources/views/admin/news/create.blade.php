@@ -105,14 +105,29 @@
                           placeholder="Tóm tắt ngắn gọn nội dung chính của tin tức...">{{ old('summary') }}</textarea>
             </div>
 
-            <div>
-                <label class="block text-sm font-bold text-slate-200 mb-2">Nội dung</label>
-                <textarea name="content"
-                          rows="12"
-                          required
-                          class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-blue-400 focus:ring-blue-400/30"
-                          placeholder="Nhập nội dung tin tức...">{{ old('content') }}</textarea>
-            </div>
+            <section class="rounded-3xl border border-blue-400/20 bg-blue-400/10 p-5 md:p-6 space-y-5">
+                <div>
+                    <h2 class="text-xl font-black text-white">
+                        Nội dung tin tức
+                    </h2>
+
+                    <p class="mt-2 text-sm text-slate-300 leading-7">
+                        Dùng thanh công cụ để định dạng đề mục, chữ đậm, chữ nghiêng, danh sách và trích dẫn.
+                        Bạn cũng có thể chèn ảnh ngay giữa các đoạn bằng nút upload ảnh hoặc kéo thả ảnh vào vùng soạn thảo.
+                    </p>
+                </div>
+
+                <textarea
+                    id="news-content-editor"
+                    name="content"
+                    rows="18"
+                    required
+                    data-rich-text-editor
+                    data-upload-url="{{ route('editor.images.upload') }}"
+                    class="w-full rounded-2xl bg-slate-950/70 border border-white/10 text-slate-100 px-4 py-3 focus:border-blue-400 focus:ring-blue-400/30"
+                    placeholder="Nhập nội dung tin tức..."
+                >{{ old('content') }}</textarea>
+            </section>
 
             <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/10">
                 <a href="{{ route('admin.news.index') }}"
